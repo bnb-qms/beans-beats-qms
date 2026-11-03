@@ -5,6 +5,7 @@ erDiagram
     STAFF {
         uuid id PK
         string username UK
+        string password_hash
         string role
         boolean is_active
         timestamp created_at
@@ -23,6 +24,11 @@ erDiagram
         string name
         decimal price
         boolean is_available
+    }
+
+    DAILY_ORDER_COUNTERS {
+        date event_day PK
+        int last_number
     }
 
     ORDERS {
@@ -68,8 +74,8 @@ erDiagram
 
 ## Data rules
 
-- `event_day` is the booth's business date in `Asia/Singapore`, assigned when the order is accepted. `order_number` starts at 1 each event day. Enforce `UNIQUE (event_day, order_number)` and allocate numbers atomically on the server. An offline device retains the order's UUID and shows a provisional identifier until synchronization assigns the daily number. Daily reset starts a new number sequence; it does not delete prior orders.
-- `STAFF.id` references the Supabase Auth user ID. Supabase Auth holds credentials; the public staff profile stores role and activity state only. Admins provision staff accounts separately.
+- `event_day` is the booth's business date in `Asia/Singapore`, assigned when the order is accepted. `order_number` starts at 1 each event day. Enforce `UNIQUE (event_day, order_number)` and allocate numbers atomically using `DAILY_ORDER_COUNTERS`. The counter is an allocation aid, not a foreign-key parent of orders. An offline device retains the order's UUID and shows a provisional identifier until synchronization assigns the daily number. Daily reset starts a new counter row; it does not delete prior orders.
+- `STAFF.id` is an internal UUID, independent of Supabase Auth. `username` is unique and `password_hash` holds a salted bcrypt hash, never plaintext. Only trusted server code may verify a submitted password; the browser cannot read staff rows or call the verification function. Production accounts are a fixed administrator-provisioned allowlist with no public signup. The mock usernames and passwords in `supabase/insert_mock_data.sql` are for disposable test data only. The app's server-side login and session flow still needs implementation before staff access works.
 - The client creates `ORDERS.id` and `client_request_id` before saving locally. Retries send the same values. Enforce uniqueness on `client_request_id` so an offline retry returns the existing order instead of creating a duplicate. Insert the order and its items in one transaction. Once accepted, items and prices are immutable; corrections require an explicit cancellation and replacement order.
 - `version` starts at 1. A status update supplies the version it read and succeeds only if it still matches; the server increments it atomically. On conflict, reload the current order and reconcile the requested transition. Never overwrite a newer status silently. Queue position and daily numbering come from the server after synchronization.
 - `customer_first_name` is required; `customer_mobile` is nullable. The mobile number is private and must not appear on the ready board or public status page. A guest page can alert while open when the order becomes ready; SMS or push delivery would require a separately specified notification mechanism and consent rules.

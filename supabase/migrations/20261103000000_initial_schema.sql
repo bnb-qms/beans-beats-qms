@@ -85,8 +85,8 @@ as $$
   select role from public.staff
   where id = (select auth.uid()) and is_active
 $$;
-revoke all on function public.current_staff_role() from public, anon;
-grant execute on function public.current_staff_role() to authenticated;
+revoke all on function public.current_staff_role() from public;
+grant execute on function public.current_staff_role() to anon, authenticated;
 
 grant select on public.menu_items, public.add_ons to anon, authenticated;
 create policy "Read available menu items" on public.menu_items for select to anon, authenticated

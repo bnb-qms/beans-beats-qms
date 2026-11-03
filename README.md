@@ -36,6 +36,20 @@ npm run dev                  # http://localhost:3000
 
 Supabase helpers are in `src/lib/supabase/` (`client.ts` for the browser, `server.ts` for server code).
 
+### Supabase database
+
+The schema is in `supabase/migrations/20261103000000_initial_schema.sql`. Create a Supabase project, set the URL and publishable key in `.env.local`, then apply the migration with the Supabase CLI:
+
+```bash
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push --remote
+```
+
+Create staff users in Supabase Auth, then insert a matching row into `public.staff` with the Auth user UUID, a unique username, and role `counter`, `barista`, or `admin`. Only trusted administrators should provision these rows. Never put a service role key in the browser or `.env.local` as a `NEXT_PUBLIC_` variable.
+
+The database exposes `create_order`, `update_order_status`, `guest_order_status`, `ready_orders`, and `daily_sales` RPC functions. `create_order` accepts client-generated UUIDs (`p_id`, `p_client_request_id`), first name, optional mobile, and an item array such as `[ { "menu_item_id": "...", "quantity": 2, "add_on_ids": ["..."] } ]`. Retry with the same UUIDs after an offline interruption. `update_order_status` requires the current `version`; on a conflict, reload the order before retrying. Guest and board functions omit customer contact details.
+
 ## Checks
 
 These run in CI on every PR and must pass before merging:

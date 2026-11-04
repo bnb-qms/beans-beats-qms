@@ -12,6 +12,7 @@ create table public.menu_items (
   name text not null check (length(trim(name)) > 0),
   base_price numeric(10,2) not null check (base_price >= 0),
   is_available boolean not null default true,
+  is_active boolean not null default true,
   updated_at timestamptz not null default now()
 );
 
@@ -90,7 +91,7 @@ grant execute on function public.current_staff_role() to anon, authenticated;
 
 grant select on public.menu_items, public.add_ons to anon, authenticated;
 create policy "Read available menu items" on public.menu_items for select to anon, authenticated
-  using (is_available or (select public.current_staff_role()) is not null);
+  using (is_active and is_available or (select public.current_staff_role()) is not null);
 create policy "Read available add ons" on public.add_ons for select to anon, authenticated
   using (is_available or (select public.current_staff_role()) is not null);
 
@@ -174,6 +175,20 @@ begin
       where id = (v_item->>'menu_item_id')::uuid and is_available;
     if not found then raise exception 'Menu item unavailable'; end if;
 
+    -- Prevent milk-based add-ons on black coffee (espresso, americano, pourover)
+    if v_menu.name in ('espresso', 'americano', 'pourover') then
+      if v_item ? 'add_on_ids' then
+        for v_add_on_id in
+          select value::uuid from jsonb_array_elements_text(coalesce(v_item->'add_on_ids', '[]'::jsonb))
+        loop
+          select * into v_add_on from public.add_ons where id = v_add_on_id;
+          if v_add_on.name = 'oat milk' then
+            raise exception 'Oat milk cannot be added to espresso or black drinks';
+          end if;
+        end loop;
+      end if;
+    end if;
+
     insert into public.order_items (order_id, menu_item_id, menu_item_name, quantity, unit_price)
     values (p_id, v_menu.id, v_menu.name, v_quantity, v_menu.base_price)
     returning id into v_order_item_id;
@@ -236,11 +251,12 @@ revoke all on function public.guest_order_status(uuid) from public;
 grant execute on function public.guest_order_status(uuid) to anon, authenticated;
 
 create function public.ready_orders()
-returns table (order_number integer, event_day date, ready_at timestamptz)
+returns table (order_number integer, event_day date, customer_first_name text, ready_at timestamptz)
 language sql stable security definer set search_path = ''
 as $$
-  select o.order_number, o.event_day, o.ready_at from public.orders o
+  select o.order_number, o.event_day, o.customer_first_name, o.ready_at from public.orders o
   where o.status = 'ready' and o.event_day = (now() at time zone 'Asia/Singapore')::date
+  order by o.ready_at
 $$;
 revoke all on function public.ready_orders() from public;
 grant execute on function public.ready_orders() to anon, authenticated;

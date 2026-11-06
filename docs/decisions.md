@@ -25,6 +25,10 @@ What the team has agreed, newest first, with where it was agreed. When a spec an
 | 27 Oct | Staff enter every order at the counter. No customer self-ordering (F2 out of scope).                                                                                                                                                                                   | Owner (Aden)                                                                                                                                           |
 | 27 Oct | Menu: espresso S$3, latte S$8, flat white S$8, americano S$6, pourover S$10. Iced +S$1, oat milk +S$1.                                                                                                                                                                 | Owner (Aden), System Design tab                                                                                                                        |
 
+### F13 clarification — 6 Nov 2026
+
+Win confirmed during F13 planning: daily cups and sales exclude cancelled orders, following the existing SQL. All other submitted statuses count under the Singapore creation date. This resolves the original F13 wording; cancellation may change historical totals, but later menu price changes must not.
+
 ## Hard requirements (from the brief)
 
 - Runs in a browser on tablets and guests' phones. No app to download, no customer account.

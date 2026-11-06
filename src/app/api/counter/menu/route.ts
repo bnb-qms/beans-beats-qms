@@ -7,7 +7,7 @@ import {
   json,
   requireStaff,
 } from "@/lib/staff-server";
-import { parsePrice, validMenuChange } from "@/lib/menu-change";
+import { parsePrice, validMenuChange, canChangeMenu } from "@/lib/menu-change";
 
 export async function GET() {
   try {
@@ -38,26 +38,37 @@ export async function PATCH(request: Request) {
   try {
     checkOrigin(request);
     const staff = await requireStaff();
-    if (staff.role !== "admin")
-      throw new HttpError(403, "Only admins can change prices.");
     const change = await body(request);
     if (!validMenuChange(change))
       throw new HttpError(
         400,
-        "Enter a price with up to two decimal places and retry.",
+        "Check the selected item and value, then retry.",
+      );
+    if (!canChangeMenu(staff.role, change.action))
+      throw new HttpError(
+        403,
+        "You do not have permission to make this change.",
       );
     const { data, error } = await database().rpc("counter_edit_menu", {
       p_staff_id: staff.id,
       p_kind: change.kind,
       p_id: change.id,
       p_version: change.version,
-      p_change: { price_cents: parsePrice(change.value) },
+      p_change:
+        change.action === "price"
+          ? { price_cents: parsePrice(change.value) }
+          : { is_available: change.value },
     });
     if (error) {
       if (error.message === "BB_CONFLICT")
         throw new HttpError(
           409,
           "This item changed since you started editing. Review the current saved value, then retry your change.",
+        );
+      if (error.message === "BB_INACTIVE")
+        throw new HttpError(
+          409,
+          "This drink is inactive. Availability controls cannot reactivate it.",
         );
       if (error.message === "BB_FORBIDDEN")
         throw new HttpError(

@@ -4,9 +4,15 @@ export type MenuChange = {
   kind: "drink" | "option";
   id: string;
   version: number;
-  action: "price";
-  value: string;
-};
+} & (
+  | { action: "price"; value: string }
+  | { action: "availability"; value: boolean }
+);
+export type PriceChange = Extract<MenuChange, { action: "price" }>;
+export type AvailabilityChange = Extract<
+  MenuChange,
+  { action: "availability" }
+>;
 export function parsePrice(value: unknown): number | null {
   if (typeof value !== "string" || !/^\d{1,6}(\.\d{1,2})?$/.test(value.trim()))
     return null;
@@ -21,7 +27,14 @@ export function validMenuChange(input: unknown): input is MenuChange {
     UUID.test(change.id) &&
     Number.isSafeInteger(change.version) &&
     change.version > 0 &&
-    change.action === "price" &&
-    parsePrice(change.value) !== null
+    ((change.action === "price" && parsePrice(change.value) !== null) ||
+      (change.action === "availability" && typeof change.value === "boolean"))
   );
+}
+
+export function canChangeMenu(
+  role: string,
+  action: MenuChange["action"],
+): boolean {
+  return role === "admin" || (role === "barista" && action === "availability");
 }

@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { readSession } from "./session-token";
+import { sameRequestOrigin } from "./request-origin";
 
 export const SESSION_COOKIE = "bb_staff";
 export type Staff = {
@@ -68,7 +69,7 @@ export async function requireStaff() {
   return staff;
 }
 export function checkOrigin(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!sameRequestOrigin(request))
     throw new HttpError(403, "Open this app directly and try again.");
 }
 export async function body(request: Request) {

@@ -43,5 +43,7 @@ Record commands, outcomes and browser scenarios in the PR for #11. Run all five 
 - `npm run typecheck`: passed.
 - `npm test`: 26 tests passed.
 - `npm run build`: blocked by Turbopack local port binding (`Operation not permitted`), also after escalation. `npm run build -- --webpack` passed.
-- SQL rollback assertions: not run; `TEST_DATABASE_URL` is unset.
-- Browser scenarios and F19 reset integration: not run in this environment.
+- SQL rollback assertions: passed on 7 Nov 2026 in disposable local PostgreSQL `bb_f13_validation` after applying all migrations with Supabase role/auth shims.
+- Browser `/report` sign-in state: verified on 7 Nov 2026 with the local dev server. Signed-in totals could not be exercised because no admin test login is configured. F19 reset integration remains unavailable because F19 is not implemented.
+
+Recheck on 7 Nov 2026: lint, format, typecheck, all 26 Vitest tests and webpack build passed. The default Turbopack build remains blocked by local process port binding.

@@ -114,6 +114,14 @@ export function StaffWorkspace({
             >
               Menu controls
             </Link>
+            {staff.role === "admin" && (
+              <Link
+                className="inline-flex min-h-tap items-center underline"
+                href="/report"
+              >
+                Daily report
+              </Link>
+            )}
             <span className="eyebrow">
               {staff.username} · {staff.role}
             </span>

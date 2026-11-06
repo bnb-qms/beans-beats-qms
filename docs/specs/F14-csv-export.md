@@ -50,3 +50,9 @@ flowchart TD
 - [ ] CSV can be opened in common spreadsheet applications.
 - [ ] Admin can export historical sales data after a daily reset.
 - [ ] Exporting does not change any existing data.
+
+## Owner clarification — 7 Nov 2026
+
+Include cancelled orders as detail rows, clearly marked as excluded from totals. Daily cups and sales exclude cancelled orders, matching F13 for the same database state. This clarifies FR4 and FR6: all submitted orders appear, but only non-cancelled orders contribute to summary totals.
+
+Use one row per order line with order ID, pickup number, Singapore creation time, status, drink name, quantity, recorded base price, recorded option charges, unit total and line total, followed by daily cups and sales totals. Include no customer personal data. See the [implementation plan](../plans/F14-csv-export/plan.md) and [tasks](../plans/F14-csv-export/tasks.md).

@@ -25,6 +25,10 @@ Read this with your feature's spec. It shows how to plug into what is already bu
 - Call your own API routes with `requestJson()` from the same file. It sends JSON, and if the session has ended it brings the sign-in form back.
 - Roles are `barista` (takes orders and makes drinks), `admin` (booth lead), and the older `counter`. Check the role on the server, never only in the page.
 
+## Test logins
+
+Sign in to staff screens with the shared test accounts in the [README](../README.md#test-logins): `preview-admin` (admin) and `preview-barista` (barista). Test every staff feature as both roles: a barista must be refused anything admin-only (prices, deactivating drinks, reports). Never create new accounts or change these passwords from code.
+
 ## API routes (all staff reads and writes)
 
 Put routes under `src/app/api/<area>/<thing>/route.ts`. Use the helpers in `src/lib/staff-server.ts`, as `src/app/api/counter/orders/route.ts` does:

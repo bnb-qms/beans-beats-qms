@@ -25,6 +25,14 @@ What the team has agreed, newest first, with where it was agreed. When a spec an
 | 27 Oct | Staff enter every order at the counter. No customer self-ordering (F2 out of scope).                                                                                                                                                                                   | Owner (Aden)                                                                                                                                           |
 | 27 Oct | Menu: espresso S$3, latte S$8, flat white S$8, americano S$6, pourover S$10. Iced +S$1, oat milk +S$1.                                                                                                                                                                 | Owner (Aden), System Design tab                                                                                                                        |
 
+### F13 clarification — 6 Nov 2026
+
+Win confirmed during F13 planning: daily cups and sales exclude cancelled orders, following the existing SQL. All other submitted statuses count under the Singapore creation date. This resolves the original F13 wording; cancellation may change historical totals, but later menu price changes must not.
+
+### F14 clarification — 7 Nov 2026
+
+Win confirmed during F14 planning: export one row per order line, including cancelled orders clearly marked as excluded from totals. Summary cups and sales exclude cancelled orders and match F13 for the same database state. Columns are order ID, pickup number, Singapore creation time, status, drink name, quantity, recorded base price, recorded option charges, unit total and line total, followed by daily cups and sales totals. Export no customer personal data.
+
 ## Hard requirements (from the brief)
 
 - Runs in a browser on tablets and guests' phones. No app to download, no customer account.
@@ -40,4 +48,3 @@ Deliverables and dates are in [`overview.md`](overview.md).
 | -------------------------------------------------------------------------------------------------- | ----------- |
 | Who shows the tracking QR (F1 confirmation screen or F7), and do we keep a separate collection QR? | Bella, TL   |
 | How long names and mobile numbers are kept, and how they are deleted after the event (F18).        | Henry       |
-| Which columns the organisers need in the CSV export.                                               | Win (F14)   |

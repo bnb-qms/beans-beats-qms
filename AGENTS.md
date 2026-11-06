@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Read first
 
-Before writing code, read [`docs/README.md`](docs/README.md). It lists the team's agreed decisions, the feature list, one spec per feature and the database design. The spec for your feature and `docs/decisions.md` decide what to build. If they disagree with each other or with the schema in `supabase/migrations/`, ask the feature owner instead of guessing. Then follow [`docs/building.md`](docs/building.md) for how to plug in: `StaffWorkspace` and `requireStaff()` for staff screens, new `p_staff_id` database functions in a new migration file, and the design tokens.
+Before writing code, read [`docs/README.md`](docs/README.md). It lists the team's agreed decisions, the feature list, one spec per feature and the database design. The spec for your feature and `docs/decisions.md` decide what to build. If they disagree with each other or with the schema in `supabase/migrations/`, ask the feature owner instead of guessing. Then follow [`docs/building.md`](docs/building.md) for how to plug in: `StaffWorkspace` and `requireStaff()` for staff screens, new `p_staff_id` database functions in a new migration file, and the design tokens. Test logins for the staff screens are in the README's "Test logins" section.
 
 ## Project rules
 

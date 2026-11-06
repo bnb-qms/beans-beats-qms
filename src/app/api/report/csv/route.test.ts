@@ -23,6 +23,7 @@ vi.mock("@/lib/staff-server", () => {
     database: () => ({ rpc: mocks.rpc }),
   };
 });
+import { HttpError } from "@/lib/staff-server";
 import { GET } from "./route";
 const request = (query = "?date=2026-11-26") =>
   new Request(`https://example.test/api/report/csv${query}`);
@@ -63,6 +64,24 @@ describe("GET CSV export", () => {
     ])
       expect((await GET(request(query))).status).toBe(400);
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+  it("maps expired sessions and database denials without an attachment", async () => {
+    mocks.requireStaff.mockRejectedValueOnce(
+      new HttpError(401, "Session ended"),
+    );
+    const expired = await GET(request());
+    expect(expired.status).toBe(401);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "BB_FORBIDDEN" },
+    });
+    expect((await GET(request())).status).toBe(403);
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "BB_INVALID" },
+    });
+    expect((await GET(request())).status).toBe(400);
   });
   it("returns JSON without attachment on malformed RPC data", async () => {
     mocks.rpc.mockResolvedValueOnce({

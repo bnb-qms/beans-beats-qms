@@ -1,6 +1,6 @@
 # F14 implementation validation guide
 
-Status: implementation in progress. Focused CSV tests, lint, formatting, typecheck and full Vitest suite passed on 7 Nov 2026. `npx next build --webpack` passed; default `npm run build` failed because Turbopack could not bind a local worker port (Operation not permitted), including on escalation. SQL assertions have not run: no disposable Postgres is running (`pg_isready` reports no response). Manual browser and spreadsheet scenarios have not run. F19 reset integration remains deferred.
+Status: implementation in progress. Focused CSV tests, lint, formatting, typecheck and full Vitest suite passed (32 tests) on 7 Nov 2026. `npx next build --webpack` passed; default `npm run build` failed because Turbopack could not bind a local worker port (Operation not permitted), including on escalation. SQL assertions have not run: no disposable Postgres is running (`pg_isready` reports no response). Manual browser and spreadsheet scenarios have not run. F19 reset integration remains deferred.
 
 ## Prerequisites
 

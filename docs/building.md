@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 
 ## Public pages (guest page, ready board)
 
-- No sign-in. Use the browser client from `src/lib/supabase/client.ts` and the public functions only: `guest_order_status(order id)` and `ready_orders()`.
+- No sign-in. Use the browser client from `src/lib/supabase/client.ts` and the public functions only: `guest_order_status(p_tracking_token)` and `ready_orders()`. The old order-ID lookup is removed by F7. Tracking links use `/o/track#<token>`; keep credentials in the fragment and RPC body, never query strings or logs.
 - The public cannot read tables directly or subscribe to Realtime on `orders`, so poll every 3 seconds, as `src/app/board/ready-board.tsx` does.
 - Never show mobile numbers or other customers' details on a public page.
 

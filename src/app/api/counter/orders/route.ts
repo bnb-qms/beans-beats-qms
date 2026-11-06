@@ -8,6 +8,7 @@ import {
   requireStaff,
 } from "@/lib/staff-server";
 import { validateDraft, type Draft } from "@/lib/order";
+import { orderTracking } from "@/lib/order-tracking";
 
 export async function POST(request: Request) {
   try {
@@ -55,7 +56,11 @@ export async function POST(request: Request) {
           "Order could not be confirmed. Retry this same draft to avoid duplicates.",
       );
     }
-    return json(data);
+    const { tracking_token, ...receipt } = data;
+    return json({
+      ...receipt,
+      ...(await orderTracking(tracking_token, request.url)),
+    });
   } catch (e) {
     return failure(e);
   }

@@ -22,7 +22,7 @@ Until these are done, the deployed app cannot read or save real data. Staff rout
 | Creating orders (F1)                       | `/order`, `/api/counter/orders`, `counter_submit_order`                               |
 | Menu reads and edits (F10-F12)             | `/menu`, `/api/counter/menu`, `counter_edit_menu`, `useMenu()`                        |
 | Ready board (F9)                           | `/board`, public `ready_orders()`                                                     |
-| Guest status read                          | public `guest_order_status(order id)`                                                 |
+| Guest status read                          | public `guest_order_status(p_tracking_token)`                                         |
 | Design tokens and `Button`                 | `src/app/globals.css`, `src/components/button.tsx`, `/design`                         |
 
 ## Remaining features
@@ -32,13 +32,13 @@ Until these are done, the deployed app cannot read or save real data. Staff rout
 | F4 Order queue                 | Pooj  | Yes            | A staff route listing today's `queued`, `preparing` and `ready` orders with their items (new `p_staff_id` function).                              |
 | F5 One-tap status updates      | Pooj  | After F4       | A new `p_staff_id` status function with the `version` check, reusing the transitions in Win's `update_order_status`.                              |
 | F6 Live queue updates          | Pooj  | After F4       | Poll the F4 route every few seconds (staff pages can't use Realtime on `orders` either, because sign-in is not Supabase Auth).                    |
-| F7 Order tracking via QR       | TL    | Yes            | `guest_order_status(order id)` for the `/o/[id]` page. A QR of the page link on F1's receipt screen (agree with Bella who adds it).               |
+| F7 Order tracking via QR       | TL    | Yes            | `guest_order_status(p_tracking_token)` for the `/o/[id]` page. F7 supplies the private tracking QR on F1's receipt screen.                        |
 | F8 Live status and ready alert | TL    | After F7       | Poll `guest_order_status` every 3 seconds; full-screen orange "Ready" state from `/design`.                                                       |
 | F13 Daily totals               | Win   | Yes            | A new admin-only `p_staff_id` function (Win's `daily_sales` logic), exclude `cancelled`.                                                          |
 | F14 CSV export                 | Win   | After F13      | The F13 query, plus the CSV columns from the organisers.                                                                                          |
 | F16 Offline mode and sync      | Win   | After F4, F5   | Keep the queue readable offline and queue status changes for later. New orders stay online only (decided).                                        |
 | F17 Staff logins               | TL    | Mostly done    | Sign-in exists (F1). Left: a sign-out button on each staff page, test logins for judges, and role checks on any new routes.                       |
-| F18 Personal data handling     | Henry | Yes            | Privacy notice on the guest page; a clean-up step that removes names and mobiles after the event.                                                 |
+| F18 Personal data handling     | Henry | Yes            | Privacy notice built in F7; a clean-up step that removes names and mobiles after the event.                                                       |
 | F19 Reset between event days   | Henry | Yes            | Numbers already restart per Singapore day. Left: the README "Daily reset" steps and, if wanted, a check that the board and queue show only today. |
 
 ## The order the pitch needs

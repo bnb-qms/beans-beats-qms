@@ -91,3 +91,14 @@ it("allows explicit availability for baristas and refuses inactive drink reactiv
     409,
   );
 });
+
+it("restricts deactivation to admins and sends a soft-deactivation flag", async () => {
+  const deactivation = { ...change, action: "deactivate", value: false };
+  expect((await PATCH(request(deactivation))).status).toBe(200);
+  expect(mocks.rpc.mock.calls[0][1].p_change).toEqual({ is_active: false });
+  mocks.requireStaff.mockResolvedValue({ id, role: "barista" });
+  expect((await PATCH(request(deactivation))).status).toBe(403);
+  expect((await PATCH(request({ ...deactivation, value: true }))).status).toBe(
+    400,
+  );
+});

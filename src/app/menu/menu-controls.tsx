@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { inputClass, requestJson } from "@/components/staff-workspace";
 import { useMenu } from "@/components/use-menu";
@@ -12,6 +12,7 @@ import {
   type MenuChange,
   type PriceChange,
   type AvailabilityChange,
+  type DeactivationChange,
 } from "@/lib/menu-change";
 import type { Staff } from "@/lib/staff-server";
 
@@ -25,15 +26,35 @@ export function MenuControls({ staff }: { staff: Staff }) {
     (AvailabilityChange & { name: string }) | null
   >(null);
   const [busy, setBusy] = useState(false);
+  const [deactivation, setDeactivation] = useState<
+    (DeactivationChange & { name: string }) | null
+  >(null);
+  const panel = useRef<HTMLElement>(null);
+  const panelKey = edit
+    ? `price:${edit.id}`
+    : availability
+      ? `availability:${availability.id}`
+      : deactivation
+        ? `deactivate:${deactivation.id}`
+        : "";
+  useEffect(() => {
+    if (!panelKey) return;
+    panel.current?.scrollIntoView({ block: "nearest" });
+    const input = panel.current?.querySelector("input");
+    if (input) input.focus();
+    else panel.current?.focus({ preventScroll: true });
+  }, [panelKey]);
   const [notice, setNotice] = useState("");
   const entries: Entry[] = menu
     ? [
-        ...menu.drinks.map((item) => ({ kind: "drink" as const, item })),
+        ...menu.drinks
+          .filter((item) => staff.role === "admin" || item.is_active)
+          .map((item) => ({ kind: "drink" as const, item })),
         ...menu.addOns.map((item) => ({ kind: "option" as const, item })),
       ]
     : [];
   const current = entries.find(
-    (e) => e.item.id === (edit?.id ?? availability?.id),
+    (e) => e.item.id === (edit?.id ?? availability?.id ?? deactivation?.id),
   )?.item;
   const priceOf = (item: Drink | AddOn) =>
     "base_price" in item ? item.base_price : item.price;
@@ -48,11 +69,14 @@ export function MenuControls({ staff }: { staff: Staff }) {
       });
       setEdit(null);
       setAvailability(null);
+      setDeactivation(null);
       void refresh().catch(() => {});
       setNotice(
         change.action === "price"
           ? "Price saved. Connected order screens will use the new amount; past orders keep their recorded prices."
-          : "Availability saved. Connected order screens will update; existing orders are unchanged.",
+          : change.action === "availability"
+            ? "Availability saved. Connected order screens will update; existing orders are unchanged."
+            : "Drink deactivated. It is hidden from new orders; existing orders and history are retained.",
       );
     } catch (e) {
       setNotice(
@@ -139,6 +163,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                                 disabled={busy || !connected}
                                 onClick={() => {
                                   setEdit(null);
+                                  setDeactivation(null);
                                   setNotice("");
                                   setAvailability({
                                     kind,
@@ -162,6 +187,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                               disabled={busy || !connected}
                               onClick={() => {
                                 setAvailability(null);
+                                setDeactivation(null);
                                 setEdit({
                                   kind,
                                   id: item.id,
@@ -176,6 +202,30 @@ export function MenuControls({ staff }: { staff: Staff }) {
                               Edit price
                             </Button>
                           )}
+                          {staff.role === "admin" &&
+                            kind === "drink" &&
+                            active && (
+                              <Button
+                                variant="quiet"
+                                className="text-error"
+                                disabled={busy || !connected}
+                                onClick={() => {
+                                  setEdit(null);
+                                  setAvailability(null);
+                                  setNotice("");
+                                  setDeactivation({
+                                    kind: "drink",
+                                    id: item.id,
+                                    version: item.version,
+                                    action: "deactivate",
+                                    value: false,
+                                    name: item.name,
+                                  });
+                                }}
+                              >
+                                Deactivate drink
+                              </Button>
+                            )}
                         </div>
                       </article>
                     );
@@ -184,7 +234,12 @@ export function MenuControls({ staff }: { staff: Staff }) {
             </section>
           ))}
         </div>
-        <aside className="rule bg-panel p-6 lg:sticky lg:top-6 lg:self-start">
+        <aside
+          ref={panel}
+          tabIndex={-1}
+          aria-label="Selected menu action"
+          className="rule bg-panel p-6 lg:sticky lg:top-6 lg:self-start"
+        >
           {edit ? (
             <form
               onSubmit={(e) => {
@@ -319,6 +374,55 @@ export function MenuControls({ staff }: { staff: Staff }) {
                 </Button>
                 <Button disabled={busy} onClick={() => setAvailability(null)}>
                   Cancel change
+                </Button>
+              </div>
+            </section>
+          ) : deactivation ? (
+            <section aria-label="Confirm drink deactivation">
+              <p className="eyebrow">Confirm deactivation</p>
+              <h2 className="mt-2 text-2xl font-bold capitalize">
+                Deactivate {deactivation.name}?
+              </h2>
+              <p className="my-5">
+                This drink will be hidden from new orders. Existing orders can
+                still be prepared and collected, and all historical prices and
+                quantities are retained. This does not delete the drink.
+              </p>
+              {current?.version !== deactivation.version && (
+                <div role="alert" className="mb-4 border-l-4 border-error pl-3">
+                  <p>
+                    This drink changed. Review its current details before
+                    confirming.
+                  </p>
+                  <Button
+                    className="mt-3"
+                    disabled={busy || !current}
+                    onClick={() => {
+                      if (current)
+                        setDeactivation({
+                          ...deactivation,
+                          version: current.version,
+                        });
+                    }}
+                  >
+                    Review current version
+                  </Button>
+                </div>
+              )}
+              <div className="grid gap-3">
+                <Button
+                  variant="danger"
+                  disabled={
+                    busy ||
+                    !connected ||
+                    current?.version !== deactivation.version
+                  }
+                  onClick={() => void save(deactivation)}
+                >
+                  {busy ? "Deactivating…" : `Deactivate ${deactivation.name}`}
+                </Button>
+                <Button disabled={busy} onClick={() => setDeactivation(null)}>
+                  Keep drink active
                 </Button>
               </div>
             </section>

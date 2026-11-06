@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { inputClass, requestJson } from "@/components/staff-workspace";
 import { formatPrice } from "@/lib/format-price";
-import { singaporeToday, type DailyTotals } from "@/lib/daily-totals";
+import {
+  singaporeToday,
+  validReportDate,
+  type DailyTotals,
+} from "@/lib/daily-totals";
 
 export function DailyTotalsReport() {
   const [date, setDate] = useState(() => singaporeToday());
@@ -12,6 +16,61 @@ export function DailyTotalsReport() {
   const [totals, setTotals] = useState<DailyTotals | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // Capture the selected day and release the temporary download URL after use.
+  async function downloadCsv() {
+    const selectedDate = date;
+    if (exporting || !validReportDate(selectedDate)) return;
+    setExporting(true);
+    setExportError("");
+    try {
+      const response = await fetch(
+        `/api/report/csv?date=${encodeURIComponent(selectedDate)}`,
+        { cache: "no-store" },
+      );
+      if (response.status === 401)
+        window.dispatchEvent(new Event("staff-session-ended"));
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(
+          typeof body?.error === "string"
+            ? body.error
+            : "Cannot export sales. Try again.",
+        );
+      }
+      const blob = await response.blob();
+      if (!mounted.current) return;
+      const url = URL.createObjectURL(blob);
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `beans-beats-sales-${selectedDate}.csv`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } catch (cause) {
+      if (mounted.current)
+        setExportError(
+          cause instanceof Error
+            ? cause.message
+            : "Cannot export sales. Try again.",
+        );
+    } finally {
+      if (mounted.current) setExporting(false);
+    }
+  }
 
   // Ignore old responses after a date change or screen exit.
   useEffect(() => {
@@ -60,6 +119,7 @@ export function DailyTotalsReport() {
               setDate(event.target.value);
             }}
             required
+            disabled={exporting}
           />
         </label>
         <Button
@@ -70,7 +130,26 @@ export function DailyTotalsReport() {
         >
           Refresh totals
         </Button>
+        <Button
+          onClick={() => void downloadCsv()}
+          disabled={exporting || !validReportDate(date)}
+        >
+          {exporting ? "Exporting CSV…" : "Export CSV"}
+        </Button>
       </div>
+      <p className="mt-4 text-muted">
+        Cancelled orders appear in the CSV but are excluded from totals.
+      </p>
+      {exporting && (
+        <p role="status" className="mt-4">
+          Preparing CSV download…
+        </p>
+      )}
+      {exportError && (
+        <p role="alert" className="mt-4 text-error">
+          {exportError}
+        </p>
+      )}
       {loading && (
         <p className="mt-6" role="status">
           Loading daily totals…

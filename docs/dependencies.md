@@ -33,7 +33,7 @@ Until these are done, the deployed app cannot read or save real data. Staff rout
 | F5 One-tap status updates      | Pooj  | After F4       | A new `p_staff_id` status function with the `version` check, reusing the transitions in Win's `update_order_status`.                              |
 | F6 Live queue updates          | Pooj  | After F4       | Poll the F4 route every few seconds (staff pages can't use Realtime on `orders` either, because sign-in is not Supabase Auth).                    |
 | F7 Order tracking via QR       | TL    | Yes            | `guest_order_status(p_tracking_token)` for the `/o/[id]` page. F7 supplies the private tracking QR on F1's receipt screen.                        |
-| F8 Live status and ready alert | TL    | After F7       | Poll `guest_order_status` every 3 seconds; full-screen orange "Ready" state from `/design`.                                                       |
+| F8 Live status and ready alert | TL    | Implemented    | F7's protected status read, 3-second visible polling, capped retries and persistent Ready message; no additional database function.               |
 | F13 Daily totals               | Win   | Yes            | A new admin-only `p_staff_id` function (Win's `daily_sales` logic), exclude `cancelled`.                                                          |
 | F14 CSV export                 | Win   | After F13      | The F13 query, plus the CSV columns from the organisers.                                                                                          |
 | F16 Offline mode and sync      | Win   | After F4, F5   | Keep the queue readable offline and queue status changes for later. New orders stay online only (decided).                                        |

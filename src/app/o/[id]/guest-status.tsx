@@ -1,80 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
-import { createClient } from "@/lib/supabase/client";
+import { guestStatuses } from "@/lib/guest-order";
 import {
-  guestStatuses,
-  isGuestOrder,
-  TRACKING_TOKEN,
-  type GuestOrder,
-} from "@/lib/guest-order";
+  initialGuestState,
+  watchGuestOrder,
+  type GuestTrackingState,
+} from "./watch-order";
 
-type Result =
-  | { kind: "loading" | "unavailable" | "error" }
-  | { kind: "order"; order: GuestOrder };
 const configured =
   !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
   !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export function GuestStatus({ id }: { id: string }) {
-  const [result, setResult] = useState<Result>({ kind: "loading" });
-  const [refresh, setRefresh] = useState(0);
+  const [result, setResult] = useState(initialGuestState);
+  const watcher = useRef<ReturnType<typeof watchGuestOrder> | null>(null);
   const sample = !configured && id === "example";
 
   useEffect(() => {
-    let active = true;
-    async function load() {
-      setResult({ kind: "loading" });
-      // shortcut: the explicit example page uses labelled sample data until Supabase is configured.
-      if (sample) {
-        setResult({
-          kind: "order",
-          order: {
-            order_number: 12,
-            event_day: "2026-11-07",
-            status: "queued",
-          },
-        });
-        return;
-      }
-      const token = window.location.hash.slice(1);
-      if (id !== "track" || !TRACKING_TOKEN.test(token)) {
-        setResult({ kind: "unavailable" });
-        return;
-      }
-      try {
-        if (!configured) throw new Error();
-        const { data, error } = await createClient().rpc("guest_order_status", {
-          p_tracking_token: token,
-        });
-        if (error) throw new Error();
-        if (!active) return;
-        if (Array.isArray(data) && data.length === 0) {
-          setResult({ kind: "unavailable" });
-        } else if (
-          Array.isArray(data) &&
-          data.length === 1 &&
-          isGuestOrder(data[0])
-        ) {
-          setResult({ kind: "order", order: data[0] });
-        } else throw new Error();
-      } catch {
-        if (active) setResult({ kind: "error" });
-      }
-    }
-    void load();
-    const hashChanged = () => {
-      active = false;
-      setRefresh((n) => n + 1);
-    };
-    window.addEventListener("hashchange", hashChanged);
-    return () => {
-      active = false;
-      window.removeEventListener("hashchange", hashChanged);
-    };
-  }, [id, refresh, sample]);
+    const subscription = watchGuestOrder(id, setResult);
+    watcher.current = subscription;
+    return () => subscription.stop();
+  }, [id]);
 
+  return (
+    <GuestStatusView
+      result={result}
+      sample={sample}
+      onRefresh={() => watcher.current?.refresh()}
+    />
+  );
+}
+
+export function GuestStatusView({
+  result,
+  sample,
+  onRefresh,
+}: {
+  result: GuestTrackingState;
+  sample: boolean;
+  onRefresh: () => void;
+}) {
   const order = result.kind === "order" ? result.order : null;
   const status = order ? guestStatuses[order.status] : null;
   return (
@@ -100,9 +67,10 @@ export function GuestStatus({ id }: { id: string }) {
                 <time dateTime={order.event_day}>{order.event_day}</time>
               </p>
               <h2 className="headline mt-8">{status.label}</h2>
-              <p className="mt-4 text-xl">{status.explanation}</p>
-              <p className="mt-6 text-sm">
-                Latest confirmed status. Refresh to check for updates.
+              <p className="mt-4 text-xl">
+                {order.status === "ready"
+                  ? `Order #${order.order_number} is ready. Please collect at the booth.`
+                  : status.explanation}
               </p>
             </>
           ) : (
@@ -116,7 +84,7 @@ export function GuestStatus({ id }: { id: string }) {
               </h1>
               <p className="mt-4 text-lg">
                 {result.kind === "error"
-                  ? "We could not check your order. Please retry when connected."
+                  ? "We could not check your order. Retrying when connected."
                   : result.kind === "unavailable"
                     ? "This tracking link is unavailable or has expired. Please check with counter staff."
                     : "Checking your order’s confirmed status."}
@@ -124,11 +92,29 @@ export function GuestStatus({ id }: { id: string }) {
             </>
           )}
         </section>
+        <div className="mb-5 text-sm">
+          {result.reconnecting && (
+            <p role="status" className="mb-2 font-bold">
+              Reconnecting — status may be out of date
+            </p>
+          )}
+          {result.lastUpdated !== null && (
+            <p>
+              Last confirmed update:{" "}
+              <time dateTime={new Date(result.lastUpdated).toISOString()}>
+                {new Date(result.lastUpdated).toLocaleTimeString()}
+              </time>
+            </p>
+          )}
+          {order && !sample && !result.reconnecting && (
+            <p>Updates automatically while this page is visible.</p>
+          )}
+        </div>
         {result.kind !== "unavailable" && (
           <Button
             block
             disabled={result.kind === "loading"}
-            onClick={() => setRefresh((n) => n + 1)}
+            onClick={onRefresh}
           >
             {result.kind === "error" ? "Retry status" : "Refresh status"}
           </Button>

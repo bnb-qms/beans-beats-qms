@@ -15,7 +15,7 @@ Copied from the "Feature List" tab of the team's Project Tables sheet on 6 Nov 2
 | F11 | #9    | Sold-out toggle             | 5. Menu controls | 26, 27, 28   | Bella | [F11](specs/F11-sold-out-toggle.md)             | Done (#27)                               |
 | F12 | #10   | Deactivate menu items       | 5. Menu controls | 29, 28       | Bella | [F12](specs/F12-deactivate-menu-items.md)       | Done (#27), plus reactivation            |
 | F13 | #11   | Daily totals                | 6. Daily report  | 31, 32       | Win   | [F13](specs/F13-daily-totals.md)                | Implemented; database validation pending |
-| F14 | #12   | CSV export                  | 6. Daily report  | 33           | Win   | [F14](specs/F14-csv-export.md)                  | Not started                              |
+| F14 | #12   | CSV export                  | 6. Daily report  | 33           | Win   | [F14](specs/F14-csv-export.md)                  | In progress                              |
 | F15 | #13   | Price snapshot per order    | 6. Daily report  | 37           | Win   | Part of F1 (see [decisions](decisions.md))      | Done inside F1                           |
 | F16 | #14   | Offline mode and sync       | All              | 38-43        | Win   | [F16](specs/F16-offline-mode-and-sync.md)       | Not started                              |
 | F17 | #15   | Staff logins                | All              | 44.1, 44.2   | TL    | [F17](specs/F17-staff-logins.md)                | Partly: sign-in built in F1 (#23)        |

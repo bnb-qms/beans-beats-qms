@@ -35,7 +35,7 @@ Out of scope:
 - **F10:** WIP menu (27 Oct): espresso S$3, latte S$8, flat white S$8, americano S$6, pourover S$10.
 - **F12:** Adding items (23), renaming (24) and milk/temperature options (30) are Medium.
 - **F13:** The booth lead tallies these totals against the POS totals at the end of each day.
-- **F14:** The POS records only totals, so our app is the only record of drinks sold. The CSV columns still need to be confirmed with the organisers.
+- **F14:** The POS records only totals, so our app is the only record of drinks sold. Win confirmed the CSV columns and cancellation handling on 7 Nov; see [decisions](decisions.md) and the [F14 plan](plans/F14-csv-export/plan.md).
 - **F16, F18:** Hard requirements from the brief.
 - **F17:** Test logins for judges are part of the required live-link deliverable.
 - **F19:** The README must explain resetting between event days. The event runs 26-29 Nov (media day plus 3 public days), with a barista dry run in the week of 16 Nov.

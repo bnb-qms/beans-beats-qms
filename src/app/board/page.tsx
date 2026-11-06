@@ -1,11 +1,10 @@
-// Module 4: Ready board. Placeholder until the module owner builds it.
+import type { Viewport } from "next";
+import { ReadyBoard } from "./ready-board";
+
+// The board is white on black, so the browser bar matches it.
+export const viewport: Viewport = { themeColor: "#0a0a0a" };
+
+// Module 4: Ready board (F9). Public screen on the booth display, no login.
 export default function BoardPage() {
-  return (
-    <main className="p-8">
-      <h1 className="text-2xl font-semibold">Ready board</h1>
-      <p className="mt-2 text-zinc-600">
-        Public screen listing orders ready for pickup.
-      </p>
-    </main>
-  );
+  return <ReadyBoard />;
 }

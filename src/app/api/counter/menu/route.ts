@@ -57,7 +57,9 @@ export async function PATCH(request: Request) {
       p_change:
         change.action === "price"
           ? { price_cents: parsePrice(change.value) }
-          : { is_available: change.value },
+          : change.action === "availability"
+            ? { is_available: change.value }
+            : { is_active: false },
     });
     if (error) {
       if (error.message === "BB_CONFLICT")

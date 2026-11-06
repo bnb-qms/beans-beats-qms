@@ -43,3 +43,13 @@ The admin menu screen edits drink base prices and existing option surcharges. Ba
 Baristas and admins can set drinks to Sold out/Available and existing options to Unavailable/Available. Legacy counter-only accounts keep order-entry access but cannot edit availability. Changes name the desired state (never a blind toggle), retain that choice on failure and require review if the item's version changed. Inactive drinks cannot be restored through availability. Unavailable oat milk is disabled on all drinks offering it, while other choices remain orderable. Existing orders and prices are untouched. All availability writes require a connection.
 
 Apply `20261106030000_counter_availability.sql` next. PATCH `/api/counter/menu` also accepts `{kind, id, version, action: "availability", value: false}`. Run `supabase/tests/counter_availability.sql` for desired-state retries, staff permissions, conflicts and inactive-item protection. The same permission rules are enforced in both the API and SQL.
+
+## F12 deactivation controls
+
+Only admins see Deactivate drink. The confirmation names the drink, explains that existing orders/history stay intact, and offers Keep drink active. A confirmed save sets `is_active = false`; the record remains labelled Inactive in admin controls and disappears from order entry and barista menu controls. There is no delete or reactivation endpoint. Stale confirmations require review, retries are harmless and offline deactivation is blocked.
+
+Apply `20261106040000_counter_deactivation.sql` last. PATCH `/api/counter/menu` accepts `{kind: "drink", id, version, action: "deactivate", value: false}`. The SQL suite `supabase/tests/counter_deactivation.sql` verifies permissions, retained rows/receipts, retry safety, order rejection and prevention of reactivation through availability.
+
+## Review and integration order
+
+Merge F1 (`1-counter-order-entry`) → F10 (`8-price-changes`) → F11 (`9-sold-out-toggle`) → F12 (`10-deactivate-menu-items`). Each PR targets the preceding feature branch to keep its diff focused; retarget the next PR to main after its parent merges. Apply all four additive migrations in that order in a test environment before hosted integration. No production database, accounts or environment secrets are changed by these branches.

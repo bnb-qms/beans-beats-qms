@@ -7,7 +7,9 @@ export type MenuChange = {
 } & (
   | { action: "price"; value: string }
   | { action: "availability"; value: boolean }
+  | { action: "deactivate"; value: false }
 );
+export type DeactivationChange = Extract<MenuChange, { action: "deactivate" }>;
 export type PriceChange = Extract<MenuChange, { action: "price" }>;
 export type AvailabilityChange = Extract<
   MenuChange,
@@ -28,7 +30,10 @@ export function validMenuChange(input: unknown): input is MenuChange {
     Number.isSafeInteger(change.version) &&
     change.version > 0 &&
     ((change.action === "price" && parsePrice(change.value) !== null) ||
-      (change.action === "availability" && typeof change.value === "boolean"))
+      (change.action === "availability" && typeof change.value === "boolean") ||
+      (change.action === "deactivate" &&
+        change.kind === "drink" &&
+        change.value === false))
   );
 }
 

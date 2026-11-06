@@ -77,3 +77,17 @@ it("surfaces concurrent edits as conflicts", async () => {
   });
   expect((await PATCH(request(change))).status).toBe(409);
 });
+
+it("allows explicit availability for baristas and refuses inactive drink reactivation", async () => {
+  mocks.requireStaff.mockResolvedValue({ id, role: "barista" });
+  const availability = { ...change, action: "availability", value: false };
+  expect((await PATCH(request(availability))).status).toBe(200);
+  expect(mocks.rpc.mock.calls[0][1].p_change).toEqual({ is_available: false });
+  mocks.rpc.mockResolvedValue({
+    data: null,
+    error: { message: "BB_INACTIVE" },
+  });
+  expect((await PATCH(request({ ...availability, value: true }))).status).toBe(
+    409,
+  );
+});

@@ -6,15 +6,24 @@ import { inputClass, requestJson } from "@/components/staff-workspace";
 import { useMenu } from "@/components/use-menu";
 import { cents, type Drink, type AddOn } from "@/lib/order";
 import { formatPrice } from "@/lib/format-price";
-import { parsePrice, type MenuChange } from "@/lib/menu-change";
+import {
+  parsePrice,
+  canChangeMenu,
+  type MenuChange,
+  type PriceChange,
+  type AvailabilityChange,
+} from "@/lib/menu-change";
 import type { Staff } from "@/lib/staff-server";
 
 type Entry = { kind: "drink" | "option"; item: Drink | AddOn };
 export function MenuControls({ staff }: { staff: Staff }) {
   const { menu, connected, error, refresh } = useMenu();
-  const [edit, setEdit] = useState<(MenuChange & { name: string }) | null>(
+  const [edit, setEdit] = useState<(PriceChange & { name: string }) | null>(
     null,
   );
+  const [availability, setAvailability] = useState<
+    (AvailabilityChange & { name: string }) | null
+  >(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const entries: Entry[] = menu
@@ -23,7 +32,9 @@ export function MenuControls({ staff }: { staff: Staff }) {
         ...menu.addOns.map((item) => ({ kind: "option" as const, item })),
       ]
     : [];
-  const current = entries.find((e) => e.item.id === edit?.id)?.item;
+  const current = entries.find(
+    (e) => e.item.id === (edit?.id ?? availability?.id),
+  )?.item;
   const priceOf = (item: Drink | AddOn) =>
     "base_price" in item ? item.base_price : item.price;
   async function save(change: MenuChange) {
@@ -36,9 +47,12 @@ export function MenuControls({ staff }: { staff: Staff }) {
         body: JSON.stringify(change),
       });
       setEdit(null);
+      setAvailability(null);
       void refresh().catch(() => {});
       setNotice(
-        "Price saved. Connected order screens will use the new amount; past orders keep their recorded prices.",
+        change.action === "price"
+          ? "Price saved. Connected order screens will use the new amount; past orders keep their recorded prices."
+          : "Availability saved. Connected order screens will update; existing orders are unchanged.",
       );
     } catch (e) {
       setNotice(
@@ -119,10 +133,35 @@ export function MenuControls({ staff }: { staff: Staff }) {
                             {kind === "option" && "+"}
                             {formatPrice(cents(priceOf(item)))}
                           </span>
+                          {canChangeMenu(staff.role, "availability") &&
+                            active && (
+                              <Button
+                                disabled={busy || !connected}
+                                onClick={() => {
+                                  setEdit(null);
+                                  setNotice("");
+                                  setAvailability({
+                                    kind,
+                                    id: item.id,
+                                    version: item.version,
+                                    action: "availability",
+                                    value: !item.is_available,
+                                    name: item.name,
+                                  });
+                                }}
+                              >
+                                {item.is_available
+                                  ? kind === "drink"
+                                    ? "Mark sold out"
+                                    : "Mark unavailable"
+                                  : "Mark available"}
+                              </Button>
+                            )}
                           {staff.role === "admin" && (
                             <Button
                               disabled={busy || !connected}
                               onClick={() => {
+                                setAvailability(null);
                                 setEdit({
                                   kind,
                                   id: item.id,
@@ -222,6 +261,67 @@ export function MenuControls({ staff }: { staff: Staff }) {
                 </Button>
               </div>
             </form>
+          ) : availability ? (
+            <section>
+              <p className="eyebrow">Change availability</p>
+              <h2 className="mt-2 text-2xl font-bold capitalize">
+                {availability.name}
+              </h2>
+              <p className="my-5">
+                Set this {availability.kind === "drink" ? "drink" : "option"} to{" "}
+                <strong>
+                  {availability.value
+                    ? "Available"
+                    : availability.kind === "drink"
+                      ? "Sold out"
+                      : "Unavailable"}
+                </strong>
+                .{" "}
+                {availability.kind === "option"
+                  ? "This applies to every drink offering it; other options remain usable."
+                  : "This affects new orders only."}{" "}
+                Existing orders are unchanged.
+              </p>
+              {current?.version !== availability.version && (
+                <div role="alert" className="mb-4 border-l-4 border-error pl-3">
+                  <p>
+                    This item changed. Current availability:{" "}
+                    {current?.is_available ? "Available" : "Unavailable"}.
+                    Review before applying your choice.
+                  </p>
+                  <Button
+                    className="mt-3"
+                    disabled={busy || !current}
+                    onClick={() => {
+                      if (current)
+                        setAvailability({
+                          ...availability,
+                          version: current.version,
+                        });
+                    }}
+                  >
+                    Review current version
+                  </Button>
+                </div>
+              )}
+              <div className="grid gap-3">
+                <Button
+                  variant="primary"
+                  disabled={
+                    busy ||
+                    !connected ||
+                    current?.version !== availability.version ||
+                    (!!current && "is_active" in current && !current.is_active)
+                  }
+                  onClick={() => void save(availability)}
+                >
+                  {busy ? "Saving…" : "Save availability"}
+                </Button>
+                <Button disabled={busy} onClick={() => setAvailability(null)}>
+                  Cancel change
+                </Button>
+              </div>
+            </section>
           ) : (
             <>
               <p className="eyebrow">Keep service moving</p>

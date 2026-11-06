@@ -7,7 +7,18 @@ Order and pickup system for the Beans&Beats booth at Christmas Together 2026 (Ha
 | **Live app**                | _to be added_         |
 | **Demo video**              | _to be added_         |
 | **Technical summary (PDF)** | _to be added_         |
-| **Test logins**             | _added at submission_ |
+| **Test logins**             | [below](#test-logins) |
+
+## Test logins
+
+Shared staff accounts for testing the staff screens (`/order`, `/menu`, and later `/queue` and `/report`) on the live site and PR previews:
+
+| Role    | Username          | Password                 | Can do                                                     |
+| ------- | ----------------- | ------------------------ | ---------------------------------------------------------- |
+| Admin   | `preview-admin`   | `local-preview-password` | Everything, including prices, deactivating drinks, reports |
+| Barista | `preview-barista` | `local-preview-password` | Take orders, update the queue, mark items sold out         |
+
+These are public test accounts. Change both passwords before the event (26 Nov), and never use them for real staff.
 
 ## Stack
 

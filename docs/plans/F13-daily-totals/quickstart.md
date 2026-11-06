@@ -35,3 +35,13 @@ npm run build
 ```
 
 Record commands, outcomes and browser scenarios in the PR for #11. Run all five before push. State any unrun SQL/browser/reset checks explicitly; do not claim F19 integration passed before it exists. See [contract](contracts/daily-totals.md) for HTTP expectations and [tasks](tasks.md) for commit checkpoints.
+
+## Implementation verification (6 Nov 2026)
+
+- `npm run lint`: passed.
+- `npm run format:check`: rerun after formatting task markers.
+- `npm run typecheck`: passed.
+- `npm test`: 26 tests passed.
+- `npm run build`: blocked by Turbopack local port binding (`Operation not permitted`), also after escalation. `npm run build -- --webpack` passed.
+- SQL rollback assertions: not run; `TEST_DATABASE_URL` is unset.
+- Browser scenarios and F19 reset integration: not run in this environment.

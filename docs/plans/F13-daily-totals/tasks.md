@@ -11,9 +11,9 @@ Read [plan](plan.md), [story map](spec.md), [contract](contracts/daily-totals.md
 
 ## Phase 2: Foundation
 
-- [ ] T003 Add focused date-helper tests in `src/lib/daily-totals.test.ts` for the constraint "Required real calendar date in YYYY-MM-DD, years 0001–9999", including invalid calendar days, leap years, year zero, and Singapore default-date boundaries independent of device timezone.
-- [ ] T004 Implement the minimal shared response type and date helpers in `src/lib/daily-totals.ts` used by route/UI; enforce "Required real calendar date in YYYY-MM-DD, years 0001–9999" without silently normalizing bad dates; document `cups` as "Nonnegative safe integer; zero for no matching orders" and `sales_cents` as "Nonnegative safe integer in SGD cents; zero for no matching orders".
-- [ ] T005 Run the focused helper tests, inspect the diff, and commit only `src/lib/daily-totals.ts` and `src/lib/daily-totals.test.ts` with `Add daily report date validation`.
+- [x] T003 Add focused date-helper tests in `src/lib/daily-totals.test.ts` for the constraint "Required real calendar date in YYYY-MM-DD, years 0001–9999", including invalid calendar days, leap years, year zero, and Singapore default-date boundaries independent of device timezone.
+- [x] T004 Implement the minimal shared response type and date helpers in `src/lib/daily-totals.ts` used by route/UI; enforce "Required real calendar date in YYYY-MM-DD, years 0001–9999" without silently normalizing bad dates; document `cups` as "Nonnegative safe integer; zero for no matching orders" and `sales_cents` as "Nonnegative safe integer in SGD cents; zero for no matching orders".
+- [x] T005 Run the focused helper tests, inspect the diff, and commit only `src/lib/daily-totals.ts` and `src/lib/daily-totals.test.ts` with `Add daily report date validation`.
 
 ## Phase 3: US1 — Daily cups (P1, source story 31)
 

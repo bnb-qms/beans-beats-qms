@@ -1,6 +1,6 @@
 # F14 implementation validation guide
 
-Status: implementation in progress. Focused CSV tests, lint, formatting, typecheck and full Vitest suite passed (32 tests) on 7 Nov 2026. `npx next build --webpack` passed; default `npm run build` failed because Turbopack could not bind a local worker port (Operation not permitted), including on escalation. SQL assertions have not run: no disposable Postgres is running (`pg_isready` reports no response). Manual browser and spreadsheet scenarios have not run. F19 reset integration remains deferred.
+Status: automated validation passed on 7 Nov 2026. All migrations applied to a disposable local PostgreSQL 15 database, and both `supabase/tests/report_csv_export.sql` and `supabase/tests/report_daily_totals.sql` passed with rollback. `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm test` (32 tests), and `npm run build` passed sequentially. The build now uses Next.js webpack and Tailwind PostCSS because the Turbopack CSS worker could not bind a local port in this environment; generated CSS contains `bg-panel`, `text-muted`, and `min-h-tap`. Manual browser and spreadsheet scenarios have not run. F19 reset integration remains deferred.
 
 ## Prerequisites
 

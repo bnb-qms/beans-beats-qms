@@ -2,12 +2,12 @@
 
 Order and pickup system for the Beans&Beats booth at Christmas Together 2026 (Hall F, Marina Bay Sands, 26 to 29 Nov).
 
-|                             |                       |
-| --------------------------- | --------------------- |
-| **Live app**                | _to be added_         |
-| **Demo video**              | _to be added_         |
-| **Technical summary (PDF)** | _to be added_         |
-| **Test logins**             | [below](#test-logins) |
+|                             |                                    |
+| --------------------------- | ---------------------------------- |
+| **Live app**                | https://beans-beats-qms.vercel.app |
+| **Demo video**              | _to be added_                      |
+| **Technical summary (PDF)** | _to be added_                      |
+| **Test logins**             | [below](#test-logins)              |
 
 ## Test logins
 
@@ -22,7 +22,7 @@ These are public test accounts. Change both passwords before the event (26 Nov),
 
 ## Stack
 
-Next.js (App Router, Route Handlers) · TypeScript · Tailwind CSS · Supabase (Postgres, Realtime) · Vitest · Vercel. Offline storage (IndexedDB + service worker) is added by its owner.
+Next.js (App Router, Route Handlers) · TypeScript · Tailwind CSS · Supabase (Postgres) · Vitest · Vercel. Offline storage (IndexedDB + service worker) is added by its owner.
 
 ## Modules
 
@@ -57,13 +57,13 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push --remote
 ```
 
-For the existing hosted project, the migrations were run in the Dashboard SQL Editor. Before using CLI `db push` against that project, reconcile its migration history with the applied SQL; otherwise the CLI may try to create the tables again.
+The team's hosted project (`beans-beats-qms`) has every migration applied, recorded in Supabase's migration history under shortened names, so check `supabase migration list` before using `db push` against it. When a PR adds a migration, apply it to the hosted project after merging.
 
-Staff accounts are a fixed set provisioned by a trusted administrator in `public.staff`. Store only a salted hash in `password_hash` (for example, `extensions.crypt('a-secret-password', extensions.gen_salt('bf'))`), never plaintext. The `verify_staff_credentials` function is available only to a trusted server using a Supabase secret/service key. Do not put that key in the browser or a `NEXT_PUBLIC_` variable. The app's staff login and server session flow are not implemented yet, so privileged database operations are disabled until they are wired up. Do not use `supabase/insert_mock_data.sql` for production accounts.
+Staff accounts live in `public.staff` with a salted bcrypt hash in `password_hash` (for example `extensions.crypt('a-password', extensions.gen_salt('bf'))`), never plaintext. Staff sign in through the app's server (`/api/staff/session`, `src/lib/staff-server.ts`), which uses the secret key in `SUPABASE_SERVICE_ROLE_KEY` and a signed cookie made with `STAFF_SESSION_SECRET`. Never put either in the browser or a `NEXT_PUBLIC_` variable. The shared test accounts are under [Test logins](#test-logins).
 
-For a disposable test database, `supabase/insert_mock_data.sql` inserts directly into the existing tables. It creates 20 staff profiles with usernames `mock_staff_01`–`mock_staff_20` and corresponding passwords `MockPass01!`–`MockPass20!`, plus the five drinks, two add-ons, and 20 sample rows in the remaining tables. These passwords are intentionally public test credentials.
+`supabase/insert_mock_data.sql` is for a disposable test database only. Its 20 `mock_staff_*` accounts have public passwords; on the hosted project they are switched off.
 
-The schema defines `create_order`, `update_order_status`, `guest_order_status`, `ready_orders`, and `daily_sales` RPC functions. Guest and board functions omit customer contact details. The privileged functions are disabled for browser clients until server-side staff sessions are implemented. `create_order` accepts client-generated UUIDs (`p_id`, `p_client_request_id`), first name, optional mobile, and an item array such as `[ { "menu_item_id": "...", "quantity": 2, "add_on_ids": ["..."] } ]`. Retry with the same UUIDs after an offline interruption. `update_order_status` requires the current `version`; on a conflict, reload the order before retrying.
+Staff actions go through server-only database functions that take the signed-in staff ID: `counter_submit_order` (orders), `counter_edit_menu` (prices, sold out, deactivate), `report_daily_totals` and `report_csv_export`. The public guest page and ready board use `guest_order_status` and `ready_orders`, which never return mobile numbers. Win's original `create_order`, `update_order_status` and `daily_sales` are switched off. See [`docs/building.md`](docs/building.md) for how to add new ones.
 
 ## Checks
 

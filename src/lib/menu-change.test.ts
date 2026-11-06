@@ -1,0 +1,41 @@
+import { expect, it } from "vitest";
+import { parsePrice, validMenuChange } from "./menu-change";
+
+it("parses SGD amounts without rounding extra decimals or accepting exponent syntax", () => {
+  expect(parsePrice("8")).toBe(800);
+  expect(parsePrice(" 8.10 ")).toBe(810);
+  expect(parsePrice("0.01")).toBe(1);
+  expect(parsePrice("0")).toBe(0);
+  for (const value of [
+    "",
+    " ",
+    "-1",
+    "8.001",
+    "1e3",
+    "1,000",
+    "Infinity",
+    "1000000",
+    null,
+    8,
+  ])
+    expect(parsePrice(value)).toBeNull();
+});
+it("requires an exact item and version for admin price changes", () => {
+  const change = {
+    kind: "drink",
+    id: "00000000-0000-4000-8000-000000000001",
+    version: 2,
+    action: "price",
+    value: "9.00",
+  };
+  expect(validMenuChange(change)).toBe(true);
+  for (const patch of [
+    { kind: "staff" },
+    { id: "bad" },
+    { version: 0 },
+    { version: "2" },
+    { action: "delete" },
+    { value: "-1" },
+  ])
+    expect(validMenuChange({ ...change, ...patch })).toBe(false);
+});

@@ -33,3 +33,7 @@ All counter endpoints require the staff session; writes also require a matching 
 ## Verification
 
 Run the repository checks and `psql "$COUNTER_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/counter_orders.sql` on a disposable database after migrations. The SQL checks roll back their fixture data and cover retries, stale totals, inactive/sold-out selections, milk rules, name/mobile validation and staff permissions.
+
+## F10 price controls
+
+The admin menu screen edits drink base prices and existing option surcharges. Baristas can read prices but cannot mutate them. PATCH `/api/counter/menu` accepts `{kind, id, version, action: "price", value: "9.00"}`. The server parses decimal SGD input into cents; Postgres compares the expected version while locking the row. A conflicting edit is retained until the admin explicitly reviews the current value. Identical retry values are safe; no silent overwrite, price rounding or history mutation occurs. Apply `20261106020000_counter_prices.sql` after the F1 migration. `supabase/tests/counter_prices.sql` verifies permissions, version conflicts, retries and shared option prices.

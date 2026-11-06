@@ -8,6 +8,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Read first
+
+Before writing code, read [`docs/README.md`](docs/README.md). It lists the team's agreed decisions, the feature list, one spec per feature and the database design. The spec for your feature and `docs/decisions.md` decide what to build. If they disagree with each other or with the schema in `supabase/migrations/`, ask the feature owner instead of guessing.
+
 ## Project rules
 
 - Follow the workflow in README.md: one branch and PR per issue, `Closes #N` in the PR, CI must be green.

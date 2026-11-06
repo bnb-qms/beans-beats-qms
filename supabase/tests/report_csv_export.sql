@@ -25,10 +25,10 @@ begin
   insert into public.order_item_add_ons(order_item_id, add_on_id, add_on_name, unit_price)
     values(item_id, option_id, 'Iced', 1);
   result := public.report_csv_export(admin_id, date '2026-11-26');
-  perform pg_temp.assert_true(jsonb_array_length(result->'lines') = 1 and result->>'cups' = '2' and result->>'sales_cents' = '1800', 'snapshot totals');
-  perform pg_temp.assert_true(result->'lines'->0->>'base_price_cents' = '800' and result->'lines'->0->>'line_total_cents' = '1800', 'line prices');
+  perform pg_temp.assert_true(jsonb_array_length(result->'lines') = 1 and result->>'cups' = '2' and (result->>'sales_cents')::numeric = 1800, 'snapshot totals');
+  perform pg_temp.assert_true((result->'lines'->0->>'base_price_cents')::numeric = 800 and (result->'lines'->0->>'line_total_cents')::numeric = 1800, 'line prices');
   perform pg_temp.assert_true(result::text not like '%private customer%', 'no PII');
-  perform pg_temp.assert_true((public.report_daily_totals(admin_id, date '2026-11-26')->>'sales_cents') = result->>'sales_cents', 'F13 parity');
+  perform pg_temp.assert_true((public.report_daily_totals(admin_id, date '2026-11-26')->>'sales_cents')::numeric = (result->>'sales_cents')::numeric, 'F13 parity');
   update public.menu_items set base_price = 12 where id = drink_id;
   perform pg_temp.assert_true(public.report_csv_export(admin_id, date '2026-11-26') = result, 'historical snapshots');
   update public.orders set status = 'cancelled' where id = order_id;

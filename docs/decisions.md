@@ -4,6 +4,12 @@ What the team has agreed, newest first, with where it was agreed. When a spec an
 
 ## Agreed
 
+- 7 Nov (F7 implementation approved in chat): F7 supplies the tracking QR on
+  F1's confirmation screen. Use a separate unpredictable tracking token and
+  retire public order-ID lookup. Collection QR remains deferred. The guest
+  privacy notice uses F18's 30-day retention after 29 November and directs
+  questions to counter staff. F8 owns live polling and alerts.
+
 | Date   | Decision                                                                                                                                                                                                                                                               | Where                                                                                                                                                  |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 6 Nov  | **Staff login is the server-side session from F1:** usernames and hashed passwords in `staff`, a signed 12-hour cookie, checked by `requireStaff()` in `src/lib/staff-server.ts`. Every staff page and route uses it. TL's F17 builds on it instead of a second login. | PR #23 (Henry; TL to confirm)                                                                                                                          |
@@ -36,8 +42,7 @@ Deliverables and dates are in [`overview.md`](overview.md).
 
 ## Open questions
 
-| Question                                                                                           | Who decides |
-| -------------------------------------------------------------------------------------------------- | ----------- |
-| Who shows the tracking QR (F1 confirmation screen or F7), and do we keep a separate collection QR? | Bella, TL   |
-| How long names and mobile numbers are kept, and how they are deleted after the event (F18).        | Henry       |
-| Which columns the organisers need in the CSV export.                                               | Win (F14)   |
+| Question                                                                          | Who decides |
+| --------------------------------------------------------------------------------- | ----------- |
+| How names and mobile numbers are deleted after the agreed retention period (F18). | Henry       |
+| Which columns the organisers need in the CSV export.                              | Win (F14)   |

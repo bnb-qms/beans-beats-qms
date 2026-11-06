@@ -35,7 +35,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const sending = useRef(false);
-  const lastTotal = useRef<number | null>(null);
+  const lastTotal = useRef<{ requestId: string; total: number } | null>(null);
   const storageKey = `bb-counter-draft:${staff.id}`;
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -77,15 +77,17 @@ export function OrderEntry({ staff }: { staff: Staff }) {
       : 0;
   useEffect(() => {
     if (
-      lastTotal.current !== null &&
-      lastTotal.current !== total &&
-      draft?.lines.length
+      lastTotal.current?.requestId === draft?.requestId &&
+      lastTotal.current?.total !== total &&
+      draft?.lines.length &&
+      !saved?.attempt
     )
       setMessage(
         "The draft total has updated. Check the amount before taking POS payment.",
       );
-    lastTotal.current = total;
-  }, [total, draft?.lines.length]);
+    lastTotal.current =
+      draft && menu ? { requestId: draft.requestId, total } : null;
+  }, [total, draft, menu, saved?.attempt]);
   if (!saved || !draft)
     return (
       <p className="py-12" role="status">
@@ -95,6 +97,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
   const locked = busy || !!saved.attempt;
   function change(next: Draft) {
     if (locked) return;
+    setMessage("");
     persist({
       draft: { ...next, requestId: crypto.randomUUID() },
       attempt: null,
@@ -346,7 +349,11 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                       className="flex flex-wrap items-end gap-3"
                     >
                       <legend className="mb-2">
-                        Options · hot / regular by default
+                        Options ·{" "}
+                        {drink && allowsMilk(drink.name)
+                          ? "hot / regular"
+                          : "hot"}{" "}
+                        by default
                       </legend>
                       {menu?.addOns
                         .filter(

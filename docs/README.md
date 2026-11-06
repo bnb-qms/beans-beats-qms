@@ -9,6 +9,7 @@ Read these before writing code. The Google Docs and Sheets are where the team ed
 | [features.md](features.md)           | Feature list with owners, issue numbers and links to each spec              |
 | [specs/](specs/)                     | One spec per feature: requirements, user flow, acceptance criteria          |
 | [user-stories.md](user-stories.md)   | All user stories with priorities                                            |
+| [design.md](design.md)               | The look: colours, type, buttons and UI rules every screen follows          |
 | [architecture.md](architecture.md)   | Database diagram and data rules for the merged schema                       |
 | [system-design.md](system-design.md) | The original system design, with a list of where the code now differs       |
 

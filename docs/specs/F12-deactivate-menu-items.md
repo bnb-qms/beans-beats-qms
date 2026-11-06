@@ -26,12 +26,12 @@ Admins remove an outdated drink from the active menu so staff cannot include it 
 
 ## Dependencies / decisions to confirm
 
-| Item  | Explanation / action needed                                                                                                                                                                                                       |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1    | Connected order-entry screens hide inactive items and validate that items remain active before saving new online orders.                                                                                                          |
-| F11   | Baristas and admins use F11 for temporary drink or option unavailability. Only admins can deactivate an outdated whole drink through F12.                                                                                         |
-| Scope | This draft uses deactivation, not permanent deletion. Reactivation and permanent deletion are outside scope unless agreed. Story 30 option-management controls remain deferred.                                                   |
-| F16   | Admin deactivation requires a connection. Offline order creation is pending agreement. If approved, agree how to reconcile locally saved orders containing drinks deactivated elsewhere without silently cancelling those orders. |
+| Item  | Explanation / action needed                                                                                                                                                                                                                                |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1    | Connected order-entry screens hide inactive items and validate that items remain active before saving new online orders.                                                                                                                                   |
+| F11   | Baristas and admins use F11 for temporary drink or option unavailability. Only admins can deactivate an outdated whole drink through F12.                                                                                                                  |
+| Scope | This draft uses deactivation, not permanent deletion. Admins can explicitly reactivate an inactive drink; its price and availability flag remain unchanged. Permanent deletion remains outside scope. Story 30 option-management controls remain deferred. |
+| F16   | Admin deactivation requires a connection. Offline order creation is pending agreement. If approved, agree how to reconcile locally saved orders containing drinks deactivated elsewhere without silently cancelling those orders.                          |
 
 ## 3. User Flow Diagram
 
@@ -57,3 +57,7 @@ flowchart TD
 - The F11 availability toggle cannot reactivate the item.
 - Failure does not display success, and repeated deactivation does not delete or duplicate records.
 - Offline deactivation is unavailable.
+
+## Owner update: reactivation
+
+Bella requested reactivation on 6 Nov. Admin controls must offer Reactivate for inactive drinks with a named confirmation. After acknowledgement, the drink returns to the active menu with its existing price and sold-out/available state. Baristas cannot reactivate, conflicting edits require review, and repeated reactivation is harmless. Existing orders and historical totals stay unchanged.

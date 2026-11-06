@@ -8,8 +8,12 @@ export type MenuChange = {
   | { action: "price"; value: string }
   | { action: "availability"; value: boolean }
   | { action: "deactivate"; value: false }
+  | { action: "reactivate"; value: true }
 );
-export type DeactivationChange = Extract<MenuChange, { action: "deactivate" }>;
+export type ActiveChange = Extract<
+  MenuChange,
+  { action: "deactivate" | "reactivate" }
+>;
 export type PriceChange = Extract<MenuChange, { action: "price" }>;
 export type AvailabilityChange = Extract<
   MenuChange,
@@ -33,7 +37,10 @@ export function validMenuChange(input: unknown): input is MenuChange {
       (change.action === "availability" && typeof change.value === "boolean") ||
       (change.action === "deactivate" &&
         change.kind === "drink" &&
-        change.value === false))
+        change.value === false) ||
+      (change.action === "reactivate" &&
+        change.kind === "drink" &&
+        change.value === true))
   );
 }
 

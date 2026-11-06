@@ -29,6 +29,9 @@ export type Draft = {
 };
 export type Receipt = {
   id: string;
+  tracking_url: string | null;
+  tracking_qr: string | null;
+  tracking_warning: string | null;
   order_number: number;
   event_day: string;
   customer_first_name: string;

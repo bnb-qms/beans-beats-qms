@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/button";
 import { createClient } from "@/lib/supabase/client";
 
 type ReadyOrder = {
@@ -38,39 +39,47 @@ export function ReadyBoard() {
   }, []);
 
   return (
-    <main className="flex flex-1 flex-col bg-zinc-950 p-8 text-white">
+    <main
+      className="flex flex-1 flex-col bg-ink text-paper [color-scheme:dark]"
+      style={{
+        padding:
+          "max(2rem, env(safe-area-inset-top)) max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom)) max(2rem, env(safe-area-inset-left))",
+      }}
+    >
       <header className="flex items-center justify-between gap-4">
-        <h1 className="text-5xl font-bold">Ready for pickup</h1>
+        <h1 className="headline">Ready for pickup</h1>
         <div className="flex items-center gap-4">
           {reconnecting && (
-            <span className="rounded-full bg-amber-500 px-4 py-1 text-lg font-semibold text-black">
-              Reconnecting...
+            <span
+              role="status"
+              className="border-2 border-paper px-4 py-2 text-lg font-bold"
+            >
+              Reconnecting…
             </span>
           )}
-          <button
-            type="button"
-            onClick={() => document.documentElement.requestFullscreen()}
-            className="rounded-lg border border-zinc-600 px-4 py-2 text-lg hover:bg-zinc-800"
-          >
+          <Button onClick={() => document.documentElement.requestFullscreen()}>
             Fullscreen
-          </button>
+          </Button>
         </div>
       </header>
 
       {orders !== null && orders.length === 0 && (
-        <p className="mt-16 text-center text-4xl text-zinc-400">
+        <p className="mt-16 text-4xl font-bold text-faint">
           No orders ready yet
         </p>
       )}
 
-      <ul className="mt-10 grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-6">
+      <ul className="mt-10 grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-x-8 gap-y-10">
         {orders?.map((order) => (
+          // New cards mount with the orange arrival flash; existing cards keep their key and stay still.
           <li
             key={order.order_number}
-            className="rounded-2xl bg-lime-400 p-6 text-center text-black"
+            className="animate-arrive min-w-0 border-t-[6px] border-signal pt-4"
           >
-            <p className="text-7xl font-bold">{order.order_number}</p>
-            <p className="mt-2 truncate text-4xl font-semibold">
+            <p className="numeral text-8xl font-bold leading-none">
+              {order.order_number}
+            </p>
+            <p className="mt-3 truncate text-4xl font-bold">
               {order.customer_first_name}
             </p>
           </li>

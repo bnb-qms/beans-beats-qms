@@ -37,3 +37,9 @@ Run the repository checks and `psql "$COUNTER_TEST_DATABASE_URL" -v ON_ERROR_STO
 ## F10 price controls
 
 The admin menu screen edits drink base prices and existing option surcharges. Baristas can read prices but cannot mutate them. PATCH `/api/counter/menu` accepts `{kind, id, version, action: "price", value: "9.00"}`. The server parses decimal SGD input into cents; Postgres compares the expected version while locking the row. A conflicting edit is retained until the admin explicitly reviews the current value. Identical retry values are safe; no silent overwrite, price rounding or history mutation occurs. Apply `20261106020000_counter_prices.sql` after the F1 migration. `supabase/tests/counter_prices.sql` verifies permissions, version conflicts, retries and shared option prices.
+
+## F11 availability controls
+
+Baristas and admins can set drinks to Sold out/Available and existing options to Unavailable/Available. Legacy counter-only accounts keep order-entry access but cannot edit availability. Changes name the desired state (never a blind toggle), retain that choice on failure and require review if the item's version changed. Inactive drinks cannot be restored through availability. Unavailable oat milk is disabled on all drinks offering it, while other choices remain orderable. Existing orders and prices are untouched. All availability writes require a connection.
+
+Apply `20261106030000_counter_availability.sql` next. PATCH `/api/counter/menu` also accepts `{kind, id, version, action: "availability", value: false}`. Run `supabase/tests/counter_availability.sql` for desired-state retries, staff permissions, conflicts and inactive-item protection. The same permission rules are enforced in both the API and SQL.

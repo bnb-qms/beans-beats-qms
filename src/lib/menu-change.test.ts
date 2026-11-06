@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { parsePrice, validMenuChange } from "./menu-change";
+import { parsePrice, validMenuChange, canChangeMenu } from "./menu-change";
 
 it("parses SGD amounts without rounding extra decimals or accepting exponent syntax", () => {
   expect(parsePrice("8")).toBe(800);
@@ -19,6 +19,21 @@ it("parses SGD amounts without rounding extra decimals or accepting exponent syn
     8,
   ])
     expect(parsePrice(value)).toBeNull();
+});
+
+it("permits baristas to set explicit availability without admin privileges", () => {
+  const change = {
+    kind: "option",
+    id: "00000000-0000-4000-8000-000000000001",
+    version: 1,
+    action: "availability",
+    value: false,
+  };
+  expect(validMenuChange(change)).toBe(true);
+  expect(validMenuChange({ ...change, value: "false" })).toBe(false);
+  expect(canChangeMenu("barista", "availability")).toBe(true);
+  expect(canChangeMenu("barista", "price")).toBe(false);
+  expect(canChangeMenu("counter", "availability")).toBe(false);
 });
 it("requires an exact item and version for admin price changes", () => {
   const change = {

@@ -8,8 +8,8 @@ Copied from the "Feature List" tab of the team's Project Tables sheet on 6 Nov 2
 | F4  | #2    | Order queue                 | 2. Barista queue | 1, 2         | Pooj  | [F04](specs/F04-order-queue.md)                 | Not started                         |
 | F5  | #3    | One-tap status updates      | 2. Barista queue | 3, 4, 21     | Pooj  | [F05](specs/F05-one-tap-status-updates.md)      | Not started                         |
 | F6  | #4    | Live queue updates          | 2. Barista queue | 5            | Pooj  | [F06](specs/F06-live-queue-updates.md)          | Not started                         |
-| F7  | #5    | Order tracking via QR       | 3. Guest page    | 15, 18       | TL    | [F07](specs/F07-order-tracking-via-qr.md)       | Implemented on `feature/order-qr`   |
-| F8  | #6    | Live status and ready alert | 3. Guest page    | 16, 17       | TL    | [F08](specs/F08-live-status-and-ready-alert.md) | Implemented on `feature/order-qr`   |
+| F7  | #5    | Order tracking via QR       | 3. Guest page    | 15, 18       | TL    | [F07](specs/F07-order-tracking-via-qr.md)       | Done (#33)                          |
+| F8  | #6    | Live status and ready alert | 3. Guest page    | 16, 17       | TL    | [F08](specs/F08-live-status-and-ready-alert.md) | Done (#33)                          |
 | F9  | #7    | Ready board                 | 4. Ready board   | 20, 22       | Henry | [F09](specs/F09-ready-board.md)                 | Done (#20), live data               |
 | F10 | #8    | Price changes               | 5. Menu controls | 25, 28       | Bella | [F10](specs/F10-price-changes.md)               | Done (#27)                          |
 | F11 | #9    | Sold-out toggle             | 5. Menu controls | 26, 27, 28   | Bella | [F11](specs/F11-sold-out-toggle.md)             | Done (#27)                          |

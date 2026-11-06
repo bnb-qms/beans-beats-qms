@@ -4,36 +4,34 @@ What each remaining feature needs before it can work, as of 7 Nov 03:00. Updated
 
 ## Live site setup (done 7 Nov)
 
-The live site uses the team database `beans-beats-qms` (Supabase, in Win's organisation). All migrations on `main` as of 7 Nov 03:00 are applied, the four Vercel environment variables are set, and the shared test logins in the [README](../README.md#test-logins) work. The 20 old mock staff accounts are switched off. The database is in Ireland and Vercel's functions run in the US; moving both to Singapore before the event would cut the delay on each tap.
+The live site uses the team database `beans-beats-qms` (Supabase, in Win's organisation). All migrations in `supabase/migrations/` are applied, the four Vercel environment variables are set, and the shared test logins in the [README](../README.md#test-logins) work. The 20 old mock staff accounts are switched off. The database is in Ireland and Vercel's functions run in the US; moving both to Singapore before the event would cut the delay on each tap.
 
 When your PR adds a migration, tell Henry or Win so it gets applied to the team database after merging.
 
 ## Already built (reuse these)
 
-| What                                       | Where                                                                                 |
-| ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Schema, order numbering, price snapshots   | `supabase/migrations/2026110300*`                                                     |
-| Staff sign-in and session (`requireStaff`) | `src/lib/staff-server.ts`, `src/components/staff-workspace.tsx`, `/api/staff/session` |
-| Creating orders (F1)                       | `/order`, `/api/counter/orders`, `counter_submit_order`                               |
-| Menu reads and edits (F10-F12)             | `/menu`, `/api/counter/menu`, `counter_edit_menu`, `useMenu()`                        |
-| Ready board (F9)                           | `/board`, public `ready_orders()`                                                     |
-| Daily totals and CSV (F13, F14)            | `/report`, `/api/report/daily-totals`, `/api/report/csv`, `report_*` functions        |
-| Guest status read                          | public `guest_order_status(p_tracking_token)`                                         |
-| Design tokens and `Button`                 | `src/app/globals.css`, `src/components/button.tsx`, `/design`                         |
+| What                                       | Where                                                                                           |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Schema, order numbering, price snapshots   | `supabase/migrations/2026110300*`                                                               |
+| Staff sign-in and session (`requireStaff`) | `src/lib/staff-server.ts`, `src/components/staff-workspace.tsx`, `/api/staff/session`           |
+| Creating orders (F1)                       | `/order`, `/api/counter/orders`, `counter_submit_order`                                         |
+| Menu reads and edits (F10-F12)             | `/menu`, `/api/counter/menu`, `counter_edit_menu`, `useMenu()`                                  |
+| Ready board (F9)                           | `/board`, public `ready_orders()`                                                               |
+| Daily totals and CSV (F13, F14)            | `/report`, `/api/report/daily-totals`, `/api/report/csv`, `report_*` functions                  |
+| Guest status read                          | public `guest_order_status(tracking token)`, QR on the F1 receipt (`src/lib/order-tracking.ts`) |
+| Design tokens and `Button`                 | `src/app/globals.css`, `src/components/button.tsx`, `/design`                                   |
 
 ## Remaining features
 
-| Feature                        | Owner | Can start now? | Needs                                                                                                                                             |
-| ------------------------------ | ----- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F4 Order queue                 | Pooj  | Yes            | A staff route listing today's `queued`, `preparing` and `ready` orders with their items (new `p_staff_id` function).                              |
-| F5 One-tap status updates      | Pooj  | After F4       | A new `p_staff_id` status function with the `version` check, reusing the transitions in Win's `update_order_status`.                              |
-| F6 Live queue updates          | Pooj  | After F4       | Poll the F4 route every few seconds (staff pages can't use Realtime on `orders` either, because sign-in is not Supabase Auth).                    |
-| F7 Order tracking via QR       | TL    | Yes            | `guest_order_status(p_tracking_token)` for the `/o/[id]` page. F7 supplies the private tracking QR on F1's receipt screen.                        |
-| F8 Live status and ready alert | TL    | Implemented    | F7's protected status read, 3-second visible polling, capped retries and persistent Ready message; no additional database function.               |
-| F16 Offline mode and sync      | Win   | After F4, F5   | Keep the queue readable offline and queue status changes for later. New orders stay online only (decided).                                        |
-| F17 Staff logins               | TL    | Mostly done    | Sign-in exists (F1). Left: a sign-out button on each staff page, test logins for judges, and role checks on any new routes.                       |
-| F18 Personal data handling     | Henry | Yes            | Privacy notice built in F7; a clean-up step that removes names and mobiles after the event.                                                       |
-| F19 Reset between event days   | Henry | Yes            | Numbers already restart per Singapore day. Left: the README "Daily reset" steps and, if wanted, a check that the board and queue show only today. |
+| Feature                      | Owner | Can start now? | Needs                                                                                                                                             |
+| ---------------------------- | ----- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F4 Order queue               | Pooj  | Yes            | A staff route listing today's `queued`, `preparing` and `ready` orders with their items (new `p_staff_id` function).                              |
+| F5 One-tap status updates    | Pooj  | After F4       | A new `p_staff_id` status function with the `version` check, reusing the transitions in Win's `update_order_status`.                              |
+| F6 Live queue updates        | Pooj  | After F4       | Poll the F4 route every few seconds (staff pages can't use Realtime on `orders` either, because sign-in is not Supabase Auth).                    |
+| F16 Offline mode and sync    | Win   | After F4, F5   | Keep the queue readable offline and queue status changes for later. New orders stay online only (decided).                                        |
+| F17 Staff logins             | TL    | Mostly done    | Sign-in exists (F1). Left: a sign-out button on each staff page, test logins for judges, and role checks on any new routes.                       |
+| F18 Personal data handling   | Henry | Yes            | Privacy notice built in F7; a clean-up step that removes names and mobiles after the event.                                                       |
+| F19 Reset between event days | Henry | Yes            | Numbers already restart per Singapore day. Left: the README "Daily reset" steps and, if wanted, a check that the board and queue show only today. |
 
 ## The order the pitch needs
 

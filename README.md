@@ -80,7 +80,8 @@ npx next dev -p 3000 --experimental-https --experimental-https-key certificates/
 
 Open the app's `/order` page, sign in with a test account, submit a new order,
 then use **Open order status** beneath its QR. Old saved receipts retain their
-previous URLs. Guest status refresh is manual until F8 is built.
+previous URLs. Guest status updates automatically every 3 seconds while the page
+is visible and connected; **Refresh status** also requests the latest state.
 
 The phone must share the Wi-Fi network and trust the test certificate for both
 HTTPS ports. Firewall rules and Wi-Fi client isolation can still block access;
@@ -121,8 +122,14 @@ public HTTPS origin (also useful when the counter runs locally). Without a secur
 address, the order still saves and the receipt explains that its QR is unavailable.
 Existing browser receipts from before F7 have no QR; new submissions receive one.
 
-Guests can refresh the confirmed status manually. F8 owns automatic updates and
-alerts; collection QR is deferred. Without Supabase configuration, `/o/example`
+F8 polls the protected status read every 3 seconds while visible. Ready shows a
+persistent pickup message containing the order number. Repeated Ready responses
+do not reannounce that message; Collected or Cancelled removes the pickup prompt.
+During connection failures, the last confirmed order stays visible with a
+reconnecting notice and last-update time. Failed requests back off up to 30
+seconds; returning to the page or reconnecting triggers an immediate check.
+No sound, SMS, notification permission or locked-phone delivery is required.
+Collection QR remains deferred. Without Supabase configuration, `/o/example`
 shows labelled sample data; other links do not show sample orders.
 
 Run `supabase/tests/order_tracking.sql` against a disposable migrated database to

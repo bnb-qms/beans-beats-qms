@@ -395,6 +395,13 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                       {problem}
                     </p>
                   )}
+                  {(!Number.isInteger(line.quantity) ||
+                    line.quantity < 1 ||
+                    line.quantity > 100) && (
+                    <p role="alert" className="mt-3 text-error">
+                      Enter a whole-number quantity from 1 to 100.
+                    </p>
+                  )}
                   <p className="numeral mt-3 text-right font-bold">
                     {menu ? formatPrice(lineTotal(line, menu)) : "—"}
                   </p>
@@ -406,7 +413,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
         <aside className="rule bg-panel p-6 lg:sticky lg:top-6">
           <h2 className="text-xl font-bold">Guest &amp; total</h2>
           <label className="mt-5 grid gap-2 font-bold">
-            First name
+            First name (required)
             <input
               className={inputClass}
               maxLength={20}
@@ -449,6 +456,13 @@ export function OrderEntry({ staff }: { staff: Staff }) {
               </span>
             </label>
           </details>
+          {draft.mobile &&
+            (!/^[89]\d{7}$/.test(draft.mobile) || !draft.consent) && (
+              <p role="alert" className="mt-3 text-error">
+                Enter an 8-digit Singapore mobile starting with 8 or 9 and
+                confirm consent, or leave the number blank.
+              </p>
+            )}
           <p className="mt-4 text-sm text-muted">
             First name appears on the public pickup board. Mobile is optional
             and visible only to staff.

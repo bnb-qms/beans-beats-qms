@@ -12,7 +12,7 @@ import {
   type MenuChange,
   type PriceChange,
   type AvailabilityChange,
-  type DeactivationChange,
+  type ActiveChange,
 } from "@/lib/menu-change";
 import type { Staff } from "@/lib/staff-server";
 
@@ -26,16 +26,16 @@ export function MenuControls({ staff }: { staff: Staff }) {
     (AvailabilityChange & { name: string }) | null
   >(null);
   const [busy, setBusy] = useState(false);
-  const [deactivation, setDeactivation] = useState<
-    (DeactivationChange & { name: string }) | null
+  const [activeChange, setActiveChange] = useState<
+    (ActiveChange & { name: string }) | null
   >(null);
   const panel = useRef<HTMLElement>(null);
   const panelKey = edit
     ? `price:${edit.id}`
     : availability
       ? `availability:${availability.id}`
-      : deactivation
-        ? `deactivate:${deactivation.id}`
+      : activeChange
+        ? `deactivate:${activeChange.id}`
         : "";
   useEffect(() => {
     if (!panelKey) return;
@@ -54,7 +54,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
       ]
     : [];
   const current = entries.find(
-    (e) => e.item.id === (edit?.id ?? availability?.id ?? deactivation?.id),
+    (e) => e.item.id === (edit?.id ?? availability?.id ?? activeChange?.id),
   )?.item;
   const priceOf = (item: Drink | AddOn) =>
     "base_price" in item ? item.base_price : item.price;
@@ -69,14 +69,16 @@ export function MenuControls({ staff }: { staff: Staff }) {
       });
       setEdit(null);
       setAvailability(null);
-      setDeactivation(null);
+      setActiveChange(null);
       void refresh().catch(() => {});
       setNotice(
         change.action === "price"
           ? "Price saved. Connected order screens will use the new amount; past orders keep their recorded prices."
           : change.action === "availability"
             ? "Availability saved. Connected order screens will update; existing orders are unchanged."
-            : "Drink deactivated. It is hidden from new orders; existing orders and history are retained.",
+            : change.action === "reactivate"
+              ? "Drink reactivated. Its previous availability setting is unchanged."
+              : "Drink deactivated. It is hidden from new orders; existing orders and history are retained.",
       );
     } catch (e) {
       setNotice(
@@ -163,7 +165,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                                 disabled={busy || !connected}
                                 onClick={() => {
                                   setEdit(null);
-                                  setDeactivation(null);
+                                  setActiveChange(null);
                                   setNotice("");
                                   setAvailability({
                                     kind,
@@ -187,7 +189,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                               disabled={busy || !connected}
                               onClick={() => {
                                 setAvailability(null);
-                                setDeactivation(null);
+                                setActiveChange(null);
                                 setEdit({
                                   kind,
                                   id: item.id,
@@ -202,30 +204,35 @@ export function MenuControls({ staff }: { staff: Staff }) {
                               Edit price
                             </Button>
                           )}
-                          {staff.role === "admin" &&
-                            kind === "drink" &&
-                            active && (
-                              <Button
-                                variant="quiet"
-                                className="text-error"
-                                disabled={busy || !connected}
-                                onClick={() => {
-                                  setEdit(null);
-                                  setAvailability(null);
-                                  setNotice("");
-                                  setDeactivation({
-                                    kind: "drink",
-                                    id: item.id,
-                                    version: item.version,
-                                    action: "deactivate",
-                                    value: false,
-                                    name: item.name,
-                                  });
-                                }}
-                              >
-                                Deactivate drink
-                              </Button>
-                            )}
+                          {staff.role === "admin" && kind === "drink" && (
+                            <Button
+                              variant="quiet"
+                              className={active ? "text-error" : ""}
+                              disabled={busy || !connected}
+                              onClick={() => {
+                                setEdit(null);
+                                setAvailability(null);
+                                setNotice("");
+                                setActiveChange({
+                                  kind: "drink",
+                                  id: item.id,
+                                  version: item.version,
+                                  ...(active
+                                    ? {
+                                        action: "deactivate" as const,
+                                        value: false as const,
+                                      }
+                                    : {
+                                        action: "reactivate" as const,
+                                        value: true as const,
+                                      }),
+                                  name: item.name,
+                                });
+                              }}
+                            >
+                              {active ? "Deactivate drink" : "Reactivate drink"}
+                            </Button>
+                          )}
                         </div>
                       </article>
                     );
@@ -377,18 +384,23 @@ export function MenuControls({ staff }: { staff: Staff }) {
                 </Button>
               </div>
             </section>
-          ) : deactivation ? (
-            <section aria-label="Confirm drink deactivation">
-              <p className="eyebrow">Confirm deactivation</p>
+          ) : activeChange ? (
+            <section aria-label="Confirm menu activation change">
+              <p className="eyebrow">
+                {activeChange.value
+                  ? "Confirm reactivation"
+                  : "Confirm deactivation"}
+              </p>
               <h2 className="mt-2 text-2xl font-bold capitalize">
-                Deactivate {deactivation.name}?
+                {activeChange.value ? "Reactivate" : "Deactivate"}{" "}
+                {activeChange.name}?
               </h2>
               <p className="my-5">
-                This drink will be hidden from new orders. Existing orders can
-                still be prepared and collected, and all historical prices and
-                quantities are retained. This does not delete the drink.
+                {activeChange.value
+                  ? "This drink will return to the active menu with its previous price and availability. If it was sold out, mark it available separately when restocked."
+                  : "This drink will be hidden from new orders. Existing orders can still be prepared and collected, and all historical prices and quantities are retained. This does not delete the drink."}
               </p>
-              {current?.version !== deactivation.version && (
+              {current?.version !== activeChange.version && (
                 <div role="alert" className="mb-4 border-l-4 border-error pl-3">
                   <p>
                     This drink changed. Review its current details before
@@ -399,8 +411,8 @@ export function MenuControls({ staff }: { staff: Staff }) {
                     disabled={busy || !current}
                     onClick={() => {
                       if (current)
-                        setDeactivation({
-                          ...deactivation,
+                        setActiveChange({
+                          ...activeChange,
                           version: current.version,
                         });
                     }}
@@ -411,18 +423,22 @@ export function MenuControls({ staff }: { staff: Staff }) {
               )}
               <div className="grid gap-3">
                 <Button
-                  variant="danger"
+                  variant={activeChange.value ? "primary" : "danger"}
                   disabled={
                     busy ||
                     !connected ||
-                    current?.version !== deactivation.version
+                    current?.version !== activeChange.version
                   }
-                  onClick={() => void save(deactivation)}
+                  onClick={() => void save(activeChange)}
                 >
-                  {busy ? "Deactivating…" : `Deactivate ${deactivation.name}`}
+                  {busy
+                    ? "Saving…"
+                    : `${activeChange.value ? "Reactivate" : "Deactivate"} ${activeChange.name}`}
                 </Button>
-                <Button disabled={busy} onClick={() => setDeactivation(null)}>
-                  Keep drink active
+                <Button disabled={busy} onClick={() => setActiveChange(null)}>
+                  {activeChange.value
+                    ? "Keep drink inactive"
+                    : "Keep drink active"}
                 </Button>
               </div>
             </section>

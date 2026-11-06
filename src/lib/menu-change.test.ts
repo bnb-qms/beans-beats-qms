@@ -36,7 +36,7 @@ it("permits baristas to set explicit availability without admin privileges", () 
   expect(canChangeMenu("counter", "availability")).toBe(false);
 });
 
-it("only permits admins to deactivate whole drinks, never reactivate or delete options", () => {
+it("restricts explicit deactivation and reactivation to whole drinks and admins", () => {
   const change = {
     kind: "drink",
     id: "00000000-0000-4000-8000-000000000001",
@@ -49,6 +49,12 @@ it("only permits admins to deactivate whole drinks, never reactivate or delete o
   expect(validMenuChange({ ...change, kind: "option" })).toBe(false);
   expect(canChangeMenu("admin", "deactivate")).toBe(true);
   expect(canChangeMenu("barista", "deactivate")).toBe(false);
+  const reactivation = { ...change, action: "reactivate", value: true };
+  expect(validMenuChange(reactivation)).toBe(true);
+  expect(validMenuChange({ ...reactivation, value: false })).toBe(false);
+  expect(validMenuChange({ ...reactivation, kind: "option" })).toBe(false);
+  expect(canChangeMenu("admin", "reactivate")).toBe(true);
+  expect(canChangeMenu("barista", "reactivate")).toBe(false);
 });
 it("requires an exact item and version for admin price changes", () => {
   const change = {

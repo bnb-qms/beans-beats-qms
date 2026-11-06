@@ -102,3 +102,14 @@ it("restricts deactivation to admins and sends a soft-deactivation flag", async 
     400,
   );
 });
+
+it("allows only admins to explicitly reactivate a drink", async () => {
+  const reactivation = { ...change, action: "reactivate", value: true };
+  expect((await PATCH(request(reactivation))).status).toBe(200);
+  expect(mocks.rpc.mock.calls[0][1].p_change).toEqual({ is_active: true });
+  mocks.requireStaff.mockResolvedValue({ id, role: "barista" });
+  expect((await PATCH(request(reactivation))).status).toBe(403);
+  expect(
+    (await PATCH(request({ ...reactivation, kind: "option" }))).status,
+  ).toBe(400);
+});

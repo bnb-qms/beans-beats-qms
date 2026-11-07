@@ -61,6 +61,14 @@ begin
   perform pg_temp.assert_true(result->>'result' = 'already_collected', 'second scan is already collected');
   perform pg_temp.assert_true((select version = 2 from public.orders where id = ready_id), 'second scan changes nothing');
 
+  -- The barista's queue still holds version 1; Mark collected after the scan is not a conflict.
+  result := public.queue_update_status(barista_id, ready_id, 1, 'collected');
+  perform pg_temp.assert_true(result->>'status' = 'collected' and (result->>'version')::int = 2,
+    'queue tap after scan returns the collected order');
+  perform pg_temp.assert_true((select version = 2 from public.orders where id = ready_id), 'queue tap after scan changes nothing');
+  -- Other stale taps still conflict.
+  perform pg_temp.expect_error(format('select public.queue_update_status(%L, %L, 5, %L)', barista_id, queued_id, 'preparing'), 'BB_CONFLICT');
+
   result := public.scan_collect(barista_id, queued_token);
   perform pg_temp.assert_true(result->>'result' = 'not_ready', 'queued order not ready');
   perform pg_temp.assert_true((select status = 'queued' from public.orders where id = queued_id), 'queued order unchanged');

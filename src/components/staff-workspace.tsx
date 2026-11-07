@@ -10,7 +10,11 @@ import {
 } from "react";
 import { Button } from "./button";
 import type { Staff } from "@/lib/staff-server";
-import { cachedStaff, offlineStore, rememberStaff } from "@/lib/offline-store";
+import {
+  cachedStaff,
+  lockOfflineStaff,
+  rememberStaff,
+} from "@/lib/offline-store";
 
 export async function requestJson<T>(
   url: string,
@@ -54,12 +58,17 @@ export function StaffWorkspace({
         setStaff(staff);
         setError("");
         if (staff) await rememberStaff(staff);
+        else await lockOfflineStaff();
       }
-    } catch {
+    } catch (cause) {
       if (current === generation.current) {
-        const cached = await cachedStaff().catch(() => null);
+        const cached =
+          cause instanceof TypeError
+            ? await cachedStaff().catch(() => null)
+            : null;
         if (current === generation.current) {
           setStaff(cached);
+          if (!cached) await lockOfflineStaff().catch(() => {});
           setError(
             cached
               ? "Offline · using previously verified staff access."
@@ -155,7 +164,7 @@ export function StaffWorkspace({
       ++generation.current;
       setStaff(null);
       setError("");
-      await offlineStore.snapshots.toCollection().modify({ verifiedUntil: 0 });
+      await lockOfflineStaff();
       channel.current?.postMessage("changed");
     } catch {
       setError("Could not sign out. Reconnect and try again.");

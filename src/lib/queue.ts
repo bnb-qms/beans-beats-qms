@@ -3,6 +3,7 @@ import { UUID } from "./order";
 export const queueStatuses = {
   queued: "Queued",
   preparing: "Preparing",
+  ready: "Ready",
 } as const;
 
 export type QueueStatus = keyof typeof queueStatuses;
@@ -61,7 +62,6 @@ export type PendingStatusUpdate = {
 };
 
 export function queueStatusLabel(status: OrderLifecycleStatus): string {
-  if (status === "ready") return "Ready";
   if (status === "collected") return "Collected";
   return queueStatuses[status];
 }
@@ -136,14 +136,14 @@ export function applyPendingUpdates(
       projected.push(order);
       continue;
     }
-    if (update.status === "preparing") {
+    if (update.status === "preparing" || update.status === "ready") {
       projected.push({
         ...order,
-        status: "preparing",
+        status: update.status,
         version: update.expectedVersion + 1,
       });
     }
-    // Orders locally advanced to 'ready' or 'collected' leave the active queue
+    // Orders locally advanced to 'collected' leave the active queue
     // while their pending update remains stored until synchronized.
   }
   return sortQueueOrders(projected);

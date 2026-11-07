@@ -51,6 +51,23 @@ const sampleOrders: QueueOrder[] = [
       },
     ],
   },
+  {
+    id: "00000000-0000-4000-8000-000000000003",
+    order_number: 16,
+    event_day: "2026-11-26",
+    customer_first_name: "Siti",
+    status: "ready",
+    created_at: "2026-11-26T02:05:00.000Z",
+    version: 3,
+    items: [
+      {
+        id: "00000000-0000-4000-8000-000000000014",
+        menu_item_name: "americano",
+        quantity: 2,
+        add_ons: ["iced"],
+      },
+    ],
+  },
 ];
 
 afterEach(() => {
@@ -82,7 +99,15 @@ describe("BaristaQueueView", () => {
     expect(html).toContain("Mark ready");
     expect(html).toContain("Flat white · Hot");
 
+    expect(html).toContain("16");
+    expect(html).toContain("Siti");
+    expect(html).toContain("Ready");
+    expect(html).toContain("Mark collected");
+    expect(html).toContain("border-signal");
+    expect(html).toContain("Americano · Iced");
+
     expect(html.indexOf("Mei")).toBeLessThan(html.indexOf("Arjun"));
+    expect(html.indexOf("Arjun")).toBeLessThan(html.indexOf("Siti"));
   });
 
   it("disables the action button and shows Updating… while an update is processing", () => {
@@ -99,7 +124,7 @@ describe("BaristaQueueView", () => {
     expect(html).toContain("disabled");
   });
 
-  it("displays offline updates as Pending sync and removes locally completed orders from the active queue", () => {
+  it("displays offline updates as Pending sync, keeps Ready orders visible, and removes Collected orders from the active queue", () => {
     const pending: PendingStatusUpdate[] = [
       {
         orderId: sampleOrders[0].id,
@@ -117,6 +142,14 @@ describe("BaristaQueueView", () => {
         status: "ready",
         expectedVersion: 2,
       },
+      {
+        orderId: sampleOrders[2].id,
+        orderNumber: 16,
+        customerFirstName: "Siti",
+        fromStatus: "ready",
+        status: "collected",
+        expectedVersion: 3,
+      },
     ];
     const html = renderToStaticMarkup(
       createElement(BaristaQueueView, {
@@ -128,9 +161,12 @@ describe("BaristaQueueView", () => {
       }),
     );
     expect(html).toContain("Preparing · Pending sync");
-    expect(html).toContain("Offline · 2 updates pending sync");
+    expect(html).toContain("Ready · Pending sync");
+    expect(html).toContain("Mark collected");
+    expect(html).toContain("Offline · 3 updates pending sync");
     expect(html).toContain("Mei");
-    expect(html).not.toContain("Arjun");
+    expect(html).toContain("Arjun");
+    expect(html).not.toContain("Siti");
   });
 
   it("flags conflicting offline updates for staff review without overwriting the server status", () => {

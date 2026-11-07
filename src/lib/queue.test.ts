@@ -96,7 +96,7 @@ describe("queue helpers", () => {
     expect(isPendingStatusUpdate({ ...pending, status: "ready" })).toBe(false);
   });
 
-  it("projects pending offline updates onto loaded queue orders", () => {
+  it("projects pending offline updates onto loaded queue orders and removes collected orders", () => {
     const secondOrder: QueueOrder = {
       ...baseOrder,
       id: "00000000-0000-4000-8000-000000000002",
@@ -106,8 +106,17 @@ describe("queue helpers", () => {
       created_at: "2026-11-26T02:02:00.000Z",
       version: 2,
     };
+    const thirdOrder: QueueOrder = {
+      ...baseOrder,
+      id: "00000000-0000-4000-8000-000000000003",
+      order_number: 16,
+      customer_first_name: "Siti",
+      status: "ready",
+      created_at: "2026-11-26T02:04:00.000Z",
+      version: 3,
+    };
     const projected = applyPendingUpdates(
-      [baseOrder, secondOrder],
+      [baseOrder, secondOrder, thirdOrder],
       [
         {
           orderId: baseOrder.id,
@@ -125,12 +134,23 @@ describe("queue helpers", () => {
           status: "ready",
           expectedVersion: 2,
         },
+        {
+          orderId: thirdOrder.id,
+          orderNumber: 16,
+          customerFirstName: "Siti",
+          fromStatus: "ready",
+          status: "collected",
+          expectedVersion: 3,
+        },
       ],
     );
-    expect(projected).toHaveLength(1);
+    expect(projected).toHaveLength(2);
     expect(projected[0].id).toBe(baseOrder.id);
     expect(projected[0].status).toBe("preparing");
     expect(projected[0].version).toBe(2);
+    expect(projected[1].id).toBe(secondOrder.id);
+    expect(projected[1].status).toBe("ready");
+    expect(projected[1].version).toBe(3);
   });
 
   it("formats drink, temperature, and milk option matching /design", () => {
@@ -182,8 +202,8 @@ describe("queue helpers", () => {
 
   it("validates queue order payloads and rejects non-active statuses or invalid fields", () => {
     expect(isQueueOrder(baseOrder)).toBe(true);
+    expect(isQueueOrder({ ...baseOrder, status: "ready" })).toBe(true);
     expect(parseQueueOrders([baseOrder])).toEqual([baseOrder]);
-    expect(isQueueOrder({ ...baseOrder, status: "ready" })).toBe(false);
     expect(isQueueOrder({ ...baseOrder, status: "collected" })).toBe(false);
     expect(isQueueOrder({ ...baseOrder, status: "cancelled" })).toBe(false);
     expect(isQueueOrder({ ...baseOrder, items: [] })).toBe(false);

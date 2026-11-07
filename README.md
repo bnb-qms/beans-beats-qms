@@ -251,7 +251,7 @@ Before opening the next morning, the booth lead connects every booth device to t
 
 Guest first names and mobile numbers must be deleted within 30 days after the event ends on 29 Nov 2026, as the privacy notice on the guest page says. Sales records stay, without personal data.
 
-An offline order is dated the day it reaches the server, so a 29 Nov order that syncs late can be dated 30 Nov or later. Run the clean-up only after every device has sent its orders, and erase up to yesterday rather than up to 29 Nov.
+An offline order is dated the day it reaches the server, so a 29 Nov order that syncs late can be dated 30 Nov or later. Run the clean-up only after every device has sent its orders, including orders submitted on the clean-up day.
 
 Between 30 Nov and 29 Dec 2026, Win or Henry:
 
@@ -260,7 +260,7 @@ Between 30 Nov and 29 Dec 2026, Win or Henry:
 3. Runs this once in the Supabase SQL Editor for the team project:
 
 ```sql
-select public.erase_guest_details((now() at time zone 'Asia/Singapore')::date - 1);
+select public.erase_guest_details((now() at time zone 'Asia/Singapore')::date, true);
 ```
 
-It replaces every name up to and including yesterday (Singapore time) with "Guest", removes mobile numbers and consent times, and returns how many orders it changed. That covers all event days and any late-synced orders. Running it again changes nothing, and it refuses to touch the current Singapore day. Daily totals and CSV exports stay the same.
+The explicit `true` includes orders submitted today; without it, the function refuses to touch the current Singapore day. It replaces names with "Guest", removes mobile numbers and consent times, and returns how many orders changed. Running it again changes nothing. Daily totals and CSV exports stay the same.

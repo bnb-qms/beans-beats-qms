@@ -29,7 +29,6 @@ begin
     (today_order, today, 9002, 'Ravi', '81234567', now(), 6.00, admin_id, gen_random_uuid(), now());
 
   totals_before := public.report_daily_totals(admin_id, old_day);
-  -- Same call as the README: erase up to yesterday.
   erased := public.erase_guest_details(today - 1);
 
   perform pg_temp.assert_true(erased >= 2, 'old and late-synced orders erased');
@@ -56,9 +55,23 @@ begin
   exception when others then
     failed := sqlerrm = 'BB_INVALID';
   end;
-  perform pg_temp.assert_true(failed, 'erasing the current day is refused');
+  perform pg_temp.assert_true(failed, 'current day requires explicit confirmation');
+  perform pg_temp.assert_true(public.erase_guest_details(today, true) = 1, 'clean-up day order erased');
+  perform pg_temp.assert_true(
+    (select customer_first_name = 'Guest' and customer_mobile is null and mobile_consent_at is null
+     from public.orders where id = today_order),
+    'current-day late submission has no personal data');
+  perform pg_temp.assert_true(public.erase_guest_details(today, true) = 0, 'current-day retry changes nothing');
+
+  failed := false;
+  begin
+    perform public.erase_guest_details(today + 1, true);
+  exception when others then
+    failed := sqlerrm = 'BB_INVALID';
+  end;
+  perform pg_temp.assert_true(failed, 'future day is refused even with confirmation');
 end $$;
 
-select pg_temp.assert_true(not has_function_privilege('anon', 'public.erase_guest_details(date)', 'execute'), 'guests cannot erase');
-select pg_temp.assert_true(not has_function_privilege('authenticated', 'public.erase_guest_details(date)', 'execute'), 'Auth JWT cannot erase');
+select pg_temp.assert_true(not has_function_privilege('anon', 'public.erase_guest_details(date, boolean)', 'execute'), 'guests cannot erase');
+select pg_temp.assert_true(not has_function_privilege('authenticated', 'public.erase_guest_details(date, boolean)', 'execute'), 'Auth JWT cannot erase');
 rollback;

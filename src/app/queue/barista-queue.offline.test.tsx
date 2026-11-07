@@ -102,8 +102,30 @@ it("migrates a newer session update over an older snapshot", async () => {
       },
     ]),
   );
-  await mountQueue();
-  expect(host.textContent).toContain("Preparing · Pending sync");
+  let finish!: () => void;
+  const blocked = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  const write = store.updateSnapshot;
+  const save = vi
+    .spyOn(store, "updateSnapshot")
+    .mockImplementation(async (...args) => {
+      await blocked;
+      return write(...args);
+    });
+  await act(async () => root.render(<BaristaQueue staff={staff} />));
+  await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  await act(async () => root.render(<BaristaQueue staff={staff} />));
+  expect(
+    sessionStorage.getItem(pendingUpdatesStorageKey(staff.id)),
+  ).not.toBeNull();
+  expect(host.querySelector("button")?.disabled).toBe(true);
+  await act(async () => finish());
+  await vi.waitFor(() =>
+    expect(host.textContent).toContain("Preparing · Pending sync"),
+  );
   expect(sessionStorage.getItem(pendingUpdatesStorageKey(staff.id))).toBeNull();
   expect(
     (await store.offlineStore.snapshots.get(staff.id))?.pending,

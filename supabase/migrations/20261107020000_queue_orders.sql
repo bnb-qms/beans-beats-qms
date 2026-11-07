@@ -1,4 +1,4 @@
--- List today's active queue orders (queued and preparing) in creation sequence for authorised staff.
+-- List today's active queue orders (queued, preparing and ready) in creation sequence for authorised staff.
 create function public.queue_orders(p_staff_id uuid)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -55,7 +55,7 @@ begin
   into v_orders
   from public.orders o
   where o.event_day = v_day
-    and o.status in ('queued', 'preparing');
+    and o.status in ('queued', 'preparing', 'ready');
 
   return v_orders;
 end;

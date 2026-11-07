@@ -184,14 +184,24 @@ export function BaristaQueueView({
             return (
               <article
                 key={order.id}
-                className="rule flex flex-col justify-between bg-panel p-4"
+                className={
+                  order.status === "ready"
+                    ? "animate-arrive flex flex-col justify-between border-t-[6px] border-signal bg-panel p-4"
+                    : "rule flex flex-col justify-between bg-panel p-4"
+                }
               >
                 <div>
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="numeral text-5xl font-bold">
                       {order.order_number}
                     </p>
-                    <p className="eyebrow">
+                    <p
+                      className={
+                        order.status === "ready"
+                          ? "eyebrow text-ink"
+                          : "eyebrow"
+                      }
+                    >
                       {queueStatusLabel(order.status)}
                       {isPendingSync && " · Pending sync"}
                     </p>
@@ -212,7 +222,7 @@ export function BaristaQueueView({
                 </div>
                 {actionLabel && (
                   <Button
-                    variant="primary"
+                    variant={order.status === "ready" ? "secondary" : "primary"}
                     block
                     className="mt-4"
                     disabled={isUpdating}
@@ -387,7 +397,13 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
 
     const isOffline = navigator.onLine === false || !connected;
     if (isOffline) {
-      const filtered = pendingRef.current.filter((u) => u.orderId !== order.id);
+      const filtered = pendingRef.current.filter(
+        (u) =>
+          !(
+            u.orderId === order.id &&
+            (u.expectedVersion === order.version || Boolean(u.conflict))
+          ),
+      );
       savePending([
         ...filtered,
         {
@@ -418,12 +434,12 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
       setOrders((prev) => {
         if (!prev) return prev;
         const nextList =
-          next === "preparing"
+          next === "preparing" || next === "ready"
             ? prev.map((o) =>
                 o.id === order.id
                   ? {
                       ...o,
-                      status: "preparing" as const,
+                      status: next,
                       version: o.version + 1,
                     }
                   : o,

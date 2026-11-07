@@ -74,7 +74,7 @@ begin
     (older_item, oat, 'oat milk', 1);
 
   result := public.queue_orders(barista_id);
-  perform pg_temp.assert_true(jsonb_array_length(result) = 2, 'only today queued and preparing orders are returned');
+  perform pg_temp.assert_true(jsonb_array_length(result) = 3, 'only today queued, preparing and ready orders are returned');
   perform pg_temp.assert_true((result->0->>'id')::uuid = older_order, 'oldest order is returned first');
   perform pg_temp.assert_true((result->0->>'order_number')::integer = 101, 'older order number preserved');
   perform pg_temp.assert_true(result->0->>'customer_first_name' = 'Mei', 'customer name returned');
@@ -82,7 +82,9 @@ begin
   perform pg_temp.assert_true((result->0->'items'->0->>'menu_item_name') = 'latte', 'drink name returned');
   perform pg_temp.assert_true((result->0->'items'->0->>'quantity')::integer = 2, 'drink quantity returned');
   perform pg_temp.assert_true((result->0->'items'->0->'add_ons') = jsonb_build_array('iced', 'oat milk'), 'add-ons sorted and returned');
-  perform pg_temp.assert_true((result->1->>'id')::uuid = newer_order, 'newer order is returned second');
+  perform pg_temp.assert_true((result->1->>'id')::uuid = ready_order, 'ready order remains in active queue so it can be marked collected');
+  perform pg_temp.assert_true(result->1->>'status' = 'ready', 'ready status returned');
+  perform pg_temp.assert_true((result->2->>'id')::uuid = newer_order, 'newer order is returned third');
   perform pg_temp.assert_true(not (result->0 ? 'customer_mobile'), 'mobile number is not exposed in queue payload');
   perform pg_temp.assert_true(not (result->0 ? 'tracking_token'), 'tracking token is not exposed in queue payload');
 

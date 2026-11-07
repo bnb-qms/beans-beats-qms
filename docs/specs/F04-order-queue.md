@@ -1,3 +1,5 @@
+<!-- Copied from the team's Feature Specs Google Doc, tab "F4: Order queue - Poojana", on 6 Nov 2026. -->
+
 # **F4: Order Queue**
 
 **Module:** 2. Barista Queue

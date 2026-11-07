@@ -87,7 +87,7 @@ describe("GET /api/queue/orders", () => {
 
   it("rejects malformed or failed database responses with 503", async () => {
     mocks.rpc.mockResolvedValueOnce({
-      data: [{ ...sampleOrder, status: "ready" }],
+      data: [{ ...sampleOrder, status: "collected" }],
       error: null,
     });
     expect((await GET()).status).toBe(503);

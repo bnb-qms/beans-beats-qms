@@ -38,7 +38,7 @@ Win confirmed during F14 planning: export one row per order line, including canc
 
 ### F19 clarification — 7 Nov 2026
 
-Henry (F19 owner) changed F19 in PR #39: a new event day starts automatically at midnight Singapore time, using the existing per-day order numbers and today-only queue and board. The admin "Start new day" button, its uncollected-order dialog and the reset audit record are dropped. Staff follow the README end-of-day and next-morning checks instead, which also cover screens that were offline at midnight (F16). The F18 clean-up erases up to the day before it is run, so late-synced offline orders are included.
+Henry (F19 owner) changed F19 in PR #39: a new event day starts automatically at midnight Singapore time, using the existing per-day order numbers and today-only queue and board. The admin "Start new day" button, its uncollected-order dialog and the reset audit record are dropped. Staff follow the README end-of-day and next-morning checks instead, which also cover screens that were offline at midnight (F16). The F18 clean-up includes the current day only after every device has synced and been cleared, so late-synced offline orders are included.
 
 ## Hard requirements (from the brief)
 

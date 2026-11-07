@@ -2,6 +2,17 @@
 begin;
 create function pg_temp.assert_true(value boolean, message text) returns void
 language plpgsql as $$ begin if value is distinct from true then raise exception 'Assertion failed: %', message; end if; end $$;
+create function pg_temp.expect_error(command text, expected text) returns void
+language plpgsql as $$
+begin
+  begin
+    execute command;
+  exception when others then
+    if sqlerrm = expected then return; end if;
+    raise exception 'Expected %, got %', expected, sqlerrm;
+  end;
+  raise exception 'Expected exception %', expected;
+end $$;
 
 do $$
 declare
@@ -35,6 +46,12 @@ begin
   update public.orders set status = 'ready' where id = request_id;
   perform pg_temp.assert_true((select status = 'ready' from public.guest_order_status(token)), 'reads confirmed status');
   perform pg_temp.assert_true((select status = 'ready' from public.orders where id = request_id), 'read never collects order');
+  -- Status changes never change the tracking credential or the receipt.
+  update public.orders set status = 'collected', version = version + 1 where id = request_id;
+  perform pg_temp.assert_true((select status = 'collected' from public.guest_order_status(token)), 'same token tracks the collected status');
+  perform pg_temp.assert_true((select tracking_token from public.orders where id = request_id) = token, 'token stable across the status journey');
+  perform pg_temp.assert_true(public.counter_submit_order(staff_id, request_id, 'Guest', null, false, items, 800) = receipt, 'late retry keeps the same token and receipt');
+  perform pg_temp.expect_error(format('insert into public.orders (id, event_day, order_number, customer_first_name, total_amount, created_by, client_request_id, tracking_token) values (%L, %L, 9999, %L, 8, %L, %L, %L)', gen_random_uuid(), (receipt->>'event_day')::date, 'Dup', staff_id, gen_random_uuid(), token), 'duplicate key value violates unique constraint "orders_tracking_token_key"');
   update public.orders set tracking_expires_at = now() - interval '1 second' where id = request_id;
   perform pg_temp.assert_true(not exists(select from public.guest_order_status(token)), 'expired link reveals nothing');
   perform pg_temp.assert_true(to_regprocedure('public.guest_order_status(uuid)') is null, 'legacy ID access removed');

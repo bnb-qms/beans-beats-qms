@@ -36,6 +36,10 @@ Win confirmed during F13 planning: daily cups and sales exclude cancelled orders
 
 Win confirmed during F14 planning: export one row per order line, including cancelled orders clearly marked as excluded from totals. Summary cups and sales exclude cancelled orders and match F13 for the same database state. Columns are order ID, pickup number, Singapore creation time, status, drink name, quantity, recorded base price, recorded option charges, unit total and line total, followed by daily cups and sales totals. Export no customer personal data.
 
+### F19 clarification — 7 Nov 2026
+
+Henry (F19 owner) changed F19 in PR #39: a new event day starts automatically at midnight Singapore time, using the existing per-day order numbers and today-only queue and board. The admin "Start new day" button, its uncollected-order dialog and the reset audit record are dropped. Staff follow the README end-of-day and next-morning checks instead, which also cover screens that were offline at midnight (F16). The F18 clean-up erases up to the day before it is run, so late-synced offline orders are included.
+
 ## Hard requirements (from the brief)
 
 - Runs in a browser on tablets and guests' phones. No app to download, no customer account.

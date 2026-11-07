@@ -2,9 +2,9 @@
 
 What each remaining feature needs before it can work, as of 7 Nov 03:00. Updated from the team's Dependencies doc (3 Nov). Build status is in [`features.md`](features.md).
 
-## Live site setup (done 7 Nov)
+## Live site setup (done 7 Nov, moved to Singapore the same day)
 
-The live site uses the team database `beans-beats-qms` (Supabase, in Win's organisation). All migrations in `supabase/migrations/` are applied, the four Vercel environment variables are set, and the shared test logins in the [README](../README.md#test-logins) work. The 20 old mock staff accounts are switched off. The database is in Ireland and Vercel's functions run in the US; moving both to Singapore before the event would cut the delay on each tap.
+The live site uses the team database `beans-beats-qms-sg` (Supabase, in Win's organisation). All migrations in `supabase/migrations/` are applied, the four Vercel environment variables are set, and the shared test logins in the [README](../README.md#test-logins) work. The 20 old mock staff accounts are switched off. The database and Vercel's functions both run in Singapore (moved 7 Nov). The old Ireland project `beans-beats-qms` is paused as a fallback.
 
 When your PR adds a migration, tell Henry or Win so it gets applied to the team database after merging.
 

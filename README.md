@@ -2,16 +2,79 @@
 
 Order and pickup system for the Beans&Beats booth at Christmas Together 2026 (Hall F, Marina Bay Sands, 26 to 29 Nov).
 
-|                             |                       |
-| --------------------------- | --------------------- |
-| **Live app**                | _to be added_         |
-| **Demo video**              | _to be added_         |
-| **Technical summary (PDF)** | _to be added_         |
-| **Test logins**             | _added at submission_ |
+|                             |                                    |
+| --------------------------- | ---------------------------------- |
+| **Live app**                | https://beans-beats-qms.vercel.app |
+| **Demo video**              | _to be added_                      |
+| **Technical summary (PDF)** | _to be added_                      |
+| **Test logins**             | [below](#test-logins)              |
+
+## Test logins
+
+Shared staff accounts for judges and testing staff screens on the [demo site](https://beans-beats-qms.vercel.app) and PR previews. Open a staff screen, enter either account below, and use **Sign out** before changing roles:
+
+| Role    | Username          | Password                 | Can do                                                     |
+| ------- | ----------------- | ------------------------ | ---------------------------------------------------------- |
+| Admin   | `preview-admin`   | `local-preview-password` | Everything, including prices, deactivating drinks, reports |
+| Barista | `preview-barista` | `local-preview-password` | Take orders, update the queue, mark items sold out         |
+
+These are public test accounts. Change both passwords before the event (26 Nov), and never use them for real staff.
+
+Both roles can open `/order`, `/queue` and `/menu`. Baristas can change
+availability only; prices and deactivation require admin. `/report` and its CSV
+export require admin, including direct API requests. The queue currently shows
+a signed-in placeholder until F4–F6 are implemented. `/board` and guest tracking
+links remain public.
+
+### Staff sessions (F17)
+
+The agreed implementation uses pre-provisioned usernames and bcrypt passwords,
+with a signed, HttpOnly 12-hour cookie; it supersedes the original F17 proposal
+for Supabase Auth email/password. There is no public registration. The legacy
+`counter` role remains supported as required by the existing schema. Staff
+identity, active status and role are checked on the server for every protected
+request. Removing or disabling a staff record denies its next request.
+
+Signing out hides protected screens and notifies other open staff tabs. Returning
+to a hidden tab, using Back, or reconnecting hides the workspace until the server
+rechecks access. A rejected session returns to sign-in. Order drafts and uncertain
+submissions remain in per-account browser session storage; signing back in as the
+same account in that tab restores them. A different account never loads that
+account's saved draft. Closing the tab or clearing browser storage can remove it.
+Sign-in and confirmed sign-out require a working connection; a failed sign-out
+shows an error and must be retried before handing over the device.
+
+F16's persistent offline queue, cached access and conflict recovery are not built
+yet. No new offline session is granted. Reconnection checks access before
+remounting operational screens; submissions stay online-only. F19 owns event-day
+reset. These dependencies remain outstanding acceptance checks for the full F17
+offline/event-day workflow.
+
+### Demo data and reset
+
+Use representative sample orders only with these public accounts. Before storing
+live event data, move the demonstration to a separate Supabase project and point
+its deployment/PR-preview environment at that demo project. Provision demo staff
+through trusted SQL as described below; never copy live staff credentials or
+customer records into the demo. The current shared team database is not proof of
+demo/live isolation.
+
+For a disposable **local** demo, follow Local test database setup below, then run
+`npx supabase db reset --local` to reload migrations and representative mock data.
+This deletes local demo edits and orders and restores the documented mock logins.
+Never run it against live data. There is no hosted reset screen yet: ask the booth
+lead to restore sample data in the isolated demo database. Do not reset the shared
+hosted database as part of testing staff logins.
+
+Login/session regression checks are in `src/app/api/staff/session/route.test.ts`
+and `src/components/staff-workspace.test.tsx`. Run
+`supabase/tests/staff_logins.sql` only against a disposable migrated database;
+it checks credential verification, disabled accounts, throttling and permissions
+and rolls back its fixtures.
 
 ## Stack
 
-Next.js (App Router, Route Handlers) · TypeScript · Tailwind CSS · Supabase (Postgres, Realtime) · Vitest · Vercel. Offline storage (IndexedDB + service worker) is added by its owner.
+Next.js (App Router, Route Handlers) · TypeScript · Tailwind CSS · Supabase (Postgres) · Vitest · Vercel. Offline storage (IndexedDB + service worker) is added by its owner.
 
 ## Modules
 
@@ -36,6 +99,60 @@ npm run dev                  # http://localhost:3000
 
 Supabase helpers are in `src/lib/supabase/` (`client.ts` for the browser, `server.ts` for server code).
 
+### Local test database
+
+Copy `supabase/config.example.toml` to `supabase/config.toml` once; the latter is
+ignored so each developer can keep their own local settings. Start Docker
+Desktop's Linux engine, then run `npx supabase start`. The local configuration
+applies every migration and loads `insert_mock_data.sql`
+into the separate `beans-beats-qms` local database. It does not connect to a
+hosted project. Do not load these public test credentials into a production database.
+
+Use `npx supabase status -o env` to find the local API URL and keys. Copy the API
+URL, anon key and service-role key to the corresponding variables in `.env.local`;
+keep `STAFF_SESSION_SECRET` set to a random value of at least 32 characters. Restart
+the app after changing environment values. Local test sign-ins:
+
+| Role    | Username        | Password      |
+| ------- | --------------- | ------------- |
+| Barista | `mock_staff_02` | `MockPass02!` |
+| Admin   | `mock_staff_03` | `MockPass03!` |
+
+Open `/order`, sign in, and submit a test order. QR tracking needs an HTTPS app
+address; configure `TRACKING_BASE_URL` for that address. `/o/example` provides a
+labelled screen preview while database settings are absent. SQL regression
+fixtures in `supabase/tests/` roll back their changes and should run only against
+the local test database.
+
+For phone testing, both `TRACKING_BASE_URL` and `NEXT_PUBLIC_SUPABASE_URL` must
+use the computer's Wi-Fi address, never `localhost` or `127.0.0.1`. Use HTTPS on
+port 3000 for the app and port 54321 for the database API. Create a local
+certificate that includes the Wi-Fi address, then enable `[api.tls]` and its
+certificate paths in the ignored `supabase/config.toml`. The prepared checkout
+uses ignored `certificates/localhost.pem` and `localhost-key.pem` files. No
+certificate was installed into the computer's trust store.
+
+For local HTTPS, add `--hostname` with the hostname from `TRACKING_BASE_URL`
+when running the following command (required for Wi-Fi development assets).
+The `--experimental-https-ca` option lets the app verify the local database's
+certificate without disabling TLS verification:
+
+```bash
+npx next dev -p 3000 --experimental-https --experimental-https-key certificates/localhost-key.pem --experimental-https-cert certificates/localhost.pem --experimental-https-ca certificates/localhost.pem
+```
+
+Open the app's `/order` page, sign in with a test account, submit a new order,
+then use **Open order status** beneath its QR. Old saved receipts retain their
+previous URLs. Guest status updates automatically every 3 seconds while the page
+is visible and connected; **Refresh status** also requests the latest state.
+
+The phone must share the Wi-Fi network and trust the test certificate for both
+HTTPS ports. Firewall rules and Wi-Fi client isolation can still block access;
+the setup does not change Windows network profiles or firewall rules. If the
+computer's Wi-Fi address changes, update both environment URLs, the certificate
+and the preview hostname. A hosted HTTPS test environment avoids these local
+network and certificate requirements.
+
 ### Supabase database
 
 The schema is in `supabase/migrations/`. Create a Supabase project, set the URL and publishable key in `.env.local`, then apply the migrations in filename order with the Supabase CLI:
@@ -46,13 +163,43 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push --remote
 ```
 
-For the existing hosted project, the migrations were run in the Dashboard SQL Editor. Before using CLI `db push` against that project, reconcile its migration history with the applied SQL; otherwise the CLI may try to create the tables again.
+The team's hosted project (`beans-beats-qms`) has every migration applied, recorded in Supabase's migration history under shortened names, so check `supabase migration list` before using `db push` against it. When a PR adds a migration, apply it to the hosted project after merging.
 
-Staff accounts are a fixed set provisioned by a trusted administrator in `public.staff`. Store only a salted hash in `password_hash` (for example, `extensions.crypt('a-secret-password', extensions.gen_salt('bf'))`), never plaintext. The `verify_staff_credentials` function is available only to a trusted server using a Supabase secret/service key. Do not put that key in the browser or a `NEXT_PUBLIC_` variable. The app's staff login and server session flow are not implemented yet, so privileged database operations are disabled until they are wired up. Do not use `supabase/insert_mock_data.sql` for production accounts.
+Staff accounts live in `public.staff` with a salted bcrypt hash in `password_hash` (for example `extensions.crypt('a-password', extensions.gen_salt('bf'))`), never plaintext. Staff sign in through the app's server (`/api/staff/session`, `src/lib/staff-server.ts`), which uses the secret key in `SUPABASE_SERVICE_ROLE_KEY` and a signed cookie made with `STAFF_SESSION_SECRET`. Never put either in the browser or a `NEXT_PUBLIC_` variable. The shared test accounts are under [Test logins](#test-logins).
 
-For a disposable test database, `supabase/insert_mock_data.sql` inserts directly into the existing tables. It creates 20 staff profiles with usernames `mock_staff_01`–`mock_staff_20` and corresponding passwords `MockPass01!`–`MockPass20!`, plus the five drinks, two add-ons, and 20 sample rows in the remaining tables. These passwords are intentionally public test credentials.
+`supabase/insert_mock_data.sql` is for a disposable test database only. Its 20 `mock_staff_*` accounts have public passwords; on the hosted project they are switched off.
 
-The schema defines `create_order`, `update_order_status`, `guest_order_status`, `ready_orders`, and `daily_sales` RPC functions. Guest and board functions omit customer contact details. The privileged functions are disabled for browser clients until server-side staff sessions are implemented. `create_order` accepts client-generated UUIDs (`p_id`, `p_client_request_id`), first name, optional mobile, and an item array such as `[ { "menu_item_id": "...", "quantity": 2, "add_on_ids": ["..."] } ]`. Retry with the same UUIDs after an offline interruption. `update_order_status` requires the current `version`; on a conflict, reload the order before retrying.
+Staff actions go through server-only database functions that take the signed-in staff ID: `counter_submit_order` (orders), `counter_edit_menu` (prices, sold out, deactivate), `report_daily_totals` and `report_csv_export`. The public guest page and ready board use `guest_order_status` and `ready_orders`, which never return mobile numbers. Win's original `create_order`, `update_order_status` and `daily_sales` are switched off. See [`docs/building.md`](docs/building.md) for how to add new ones.
+
+## Order tracking (F7)
+
+Apply `supabase/migrations/20261107000000_order_tracking.sql` after the existing
+migrations before using tracking. This replaces public order-ID lookup with
+`guest_order_status(p_tracking_token)` and adds a distinct random token to each
+order. Submission retries keep that token. Guest links use `/o/track#<token>`;
+the fragment is private access and must not be logged or sent to analytics.
+
+Successful counter submissions include a locally generated QR on the receipt.
+Serve the app over HTTPS. Optionally set server-only `TRACKING_BASE_URL` to the
+public HTTPS origin (also useful when the counter runs locally). Without a secure
+address, the order still saves and the receipt explains that its QR is unavailable.
+Existing browser receipts from before F7 have no QR; new submissions receive one.
+
+F8 polls the protected status read every 3 seconds while visible. Ready shows a
+persistent pickup message containing the order number. Repeated Ready responses
+do not reannounce that message; Collected or Cancelled removes the pickup prompt.
+During connection failures, the last confirmed order stays visible with a
+reconnecting notice and last-update time. Failed requests back off up to 30
+seconds; returning to the page or reconnecting triggers an immediate check.
+No sound, SMS, notification permission or locked-phone delivery is required.
+Collection QR remains deferred. Without Supabase configuration, `/o/example`
+shows labelled sample data; other links do not show sample orders.
+
+Run `supabase/tests/order_tracking.sql` against a disposable migrated database to
+check access restrictions, expiry and stable identities across retries/event days.
+Links have no automatic expiry period; trusted maintenance can set
+`orders.tracking_expires_at` to retire one. Personal-data cleanup remains F18's
+responsibility and must fulfil the approved privacy notice.
 
 ## Checks
 

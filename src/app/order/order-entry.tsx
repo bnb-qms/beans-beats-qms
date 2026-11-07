@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/button";
 import { inputClass } from "@/components/staff-workspace";
 import { useMenu } from "@/components/use-menu";
@@ -35,6 +36,13 @@ export function OrderEntry({ staff }: { staff: Staff }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const sending = useRef(false);
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const lastTotal = useRef<{ requestId: string; total: number } | null>(null);
   const storageKey = `bb-counter-draft:${staff.id}`;
   useEffect(() => {
@@ -122,6 +130,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
     try {
       if (!attempt) {
         const latest = await refresh();
+        if (!active.current) return;
         const problem = draft!.lines
           .map((line) => unavailable(line, latest))
           .find(Boolean);
@@ -204,6 +213,34 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           Saved once in the barista queue. Keep the pickup number for
           collection.
         </p>
+        {receipt.tracking_url && receipt.tracking_qr ? (
+          <div className="rule my-6 bg-panel p-5 text-center">
+            <h2 className="section-title">Scan to track your order</h2>
+            <Image
+              src={receipt.tracking_qr}
+              alt={`Tracking QR for pickup number ${receipt.order_number}`}
+              width={320}
+              height={320}
+              unoptimized
+              className="mx-auto my-4 h-auto max-w-full"
+            />
+            <a
+              href={receipt.tracking_url}
+              referrerPolicy="no-referrer"
+              className="inline-flex min-h-tap items-center underline underline-offset-4"
+            >
+              Open order status
+            </a>
+            <p className="mt-2 text-muted">
+              Keep this link private. No account or mobile number needed.
+            </p>
+          </div>
+        ) : (
+          <p role="status" className="my-5 text-muted">
+            {receipt.tracking_warning ||
+              "Tracking is unavailable for this saved receipt. Keep the pickup number and check with counter staff."}
+          </p>
+        )}
         <Button
           variant="primary"
           block
@@ -486,7 +523,8 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           {saved.attempt && (
             <p role="alert" className="mb-4 font-bold">
               Submission not yet confirmed. Retry the same order before taking
-              another payment or editing it.
+              another payment or editing it. Tracking is pending server
+              confirmation.
             </p>
           )}
           <Button

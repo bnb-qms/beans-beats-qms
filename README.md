@@ -230,4 +230,29 @@ npm run build
 
 ## Daily reset
 
-_To be written by whoever owns event-day reset (F19)._
+The app starts a new event day by itself at midnight Singapore time. There is no reset button and nothing is deleted.
+
+- Every order belongs to the Singapore date it was created on. Pickup numbers start again from 1 each day.
+- The barista queue (`/queue`) and ready board (`/board`) only show today's orders, so both start empty each morning.
+- Earlier days stay in the reports: pick the date in Daily Totals or the CSV export (`/report`, admin only).
+
+At the end of each event day (26-29 Nov), the booth lead:
+
+1. Checks `/queue` for anything still Queued, Preparing or Ready, and marks collected drinks as collected. Anything left over drops off the queue and board at midnight but still counts in that day's totals.
+2. Opens `/order` on each booth device and checks that no orders show "Pending sync" or "Needs review". An offline order that only syncs after midnight is counted on the new day.
+3. Downloads that day's CSV from `/report` as a backup.
+4. Uses **Sign out** on every staff device.
+
+## Personal data clean-up (F18)
+
+Guest first names and mobile numbers must be deleted within 30 days after the event ends on 29 Nov 2026, as the privacy notice on the guest page says. Sales records stay, without personal data.
+
+Between 30 Nov and 29 Dec 2026, Win or Henry runs this once in the Supabase SQL Editor for the team project:
+
+```sql
+select public.erase_guest_details(date '2026-11-29');
+```
+
+It replaces every name up to and including that day with "Guest", removes mobile numbers and consent times, and returns how many orders it changed. Running it again changes nothing, and it refuses to touch the current Singapore day. Daily totals and CSV exports stay the same.
+
+Then clear the app's site data on every booth device (browser settings, site data), because unsent drafts and offline orders are kept on the device.

@@ -18,6 +18,10 @@ import type { Staff } from "@/lib/staff-server";
 
 const POLL_MS = 3000;
 
+function isBrowserOffline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
 export function queueStorageKey(staffId: string): string {
   return `bb-queue-orders:${staffId}`;
 }
@@ -293,13 +297,13 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
   }, [staff.id]);
 
   const syncPending = useCallback(async () => {
-    if (syncing.current || navigator.onLine === false) return;
+    if (syncing.current || isBrowserOffline()) return;
     const queue = pendingRef.current.filter((u) => !u.conflict);
     if (queue.length === 0) return;
     syncing.current = true;
     try {
       for (const item of queue) {
-        if (!active.current || navigator.onLine === false) break;
+        if (!active.current || isBrowserOffline()) break;
         const response = await fetch("/api/queue/orders", {
           method: "PATCH",
           cache: "no-store",
@@ -341,7 +345,7 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
         // Temporary failure: retain in pending queue for later retry.
         break;
       }
-      if (active.current && navigator.onLine !== false) {
+      if (active.current && !isBrowserOffline()) {
         await refresh().catch(() => {});
       }
     } catch {

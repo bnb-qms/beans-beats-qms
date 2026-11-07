@@ -27,9 +27,10 @@ const baseOrder: QueueOrder = {
 };
 
 describe("queue helpers", () => {
-  it("formats status labels as Queued and Preparing", () => {
+  it("formats status labels as Queued, Preparing, and Ready", () => {
     expect(queueStatusLabel("queued")).toBe("Queued");
     expect(queueStatusLabel("preparing")).toBe("Preparing");
+    expect(queueStatusLabel("ready")).toBe("Ready");
   });
 
   it("formats drink, temperature, and milk option matching /design", () => {
@@ -81,8 +82,8 @@ describe("queue helpers", () => {
 
   it("validates queue order payloads and rejects non-active statuses or invalid fields", () => {
     expect(isQueueOrder(baseOrder)).toBe(true);
+    expect(isQueueOrder({ ...baseOrder, status: "ready" })).toBe(true);
     expect(parseQueueOrders([baseOrder])).toEqual([baseOrder]);
-    expect(isQueueOrder({ ...baseOrder, status: "ready" })).toBe(false);
     expect(isQueueOrder({ ...baseOrder, status: "collected" })).toBe(false);
     expect(isQueueOrder({ ...baseOrder, status: "cancelled" })).toBe(false);
     expect(isQueueOrder({ ...baseOrder, items: [] })).toBe(false);

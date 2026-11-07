@@ -3,6 +3,7 @@ import { UUID } from "./order";
 export const queueStatuses = {
   queued: "Queued",
   preparing: "Preparing",
+  ready: "Ready",
 } as const;
 
 export type QueueStatus = keyof typeof queueStatuses;

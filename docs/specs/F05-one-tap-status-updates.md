@@ -1,3 +1,5 @@
+<!-- Copied from the team's Feature Specs Google Doc, tab "F5 :One-tap status updates", on 6 Nov 2026. -->
+
 # F5: One-Tap Status Updates
 
 **Module:** 2. Barista Queue  

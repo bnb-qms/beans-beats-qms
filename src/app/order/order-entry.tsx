@@ -17,6 +17,12 @@ import {
 } from "@/lib/order";
 import { formatPrice } from "@/lib/format-price";
 import type { Staff } from "@/lib/staff-server";
+import {
+  offlineStore,
+  saveOfflineOrder,
+  type PendingOrder,
+  type SyncedOrder,
+} from "@/lib/offline-store";
 
 type Attempt = { draft: Draft; totalCents: number };
 type Saved = { draft: Draft; attempt: Attempt | null; receipt: Receipt | null };
@@ -31,7 +37,9 @@ function emptyDraft(): Draft {
 }
 
 export function OrderEntry({ staff }: { staff: Staff }) {
-  const { menu, connected, error: menuError, refresh } = useMenu();
+  const { menu, connected, error: menuError, refresh } = useMenu(staff);
+  const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
+  const [syncedOrders, setSyncedOrders] = useState<SyncedOrder[]>([]);
   const [saved, setSaved] = useState<Saved | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -39,10 +47,25 @@ export function OrderEntry({ staff }: { staff: Staff }) {
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
+    const load = () => {
+      void offlineStore.pendingOrders
+        .where("staffId")
+        .equals(staff.id)
+        .toArray()
+        .then(setPendingOrders);
+      void offlineStore.syncedOrders
+        .where("staffId")
+        .equals(staff.id)
+        .toArray()
+        .then(setSyncedOrders);
+    };
+    load();
+    window.addEventListener("offline-orders-changed", load);
     return () => {
       active.current = false;
+      window.removeEventListener("offline-orders-changed", load);
     };
-  }, []);
+  }, [staff.id]);
   const lastTotal = useRef<{ requestId: string; total: number } | null>(null);
   const storageKey = `bb-counter-draft:${staff.id}`;
   useEffect(() => {
@@ -128,6 +151,30 @@ export function OrderEntry({ staff }: { staff: Staff }) {
     setMessage("");
     let attempt = saved!.attempt;
     try {
+      if (!connected || !navigator.onLine) {
+        if (
+          !validateDraft(draft!) ||
+          !menu ||
+          draft!.lines.some((line) => unavailable(line, menu))
+        )
+          throw new Error("Check the order details before saving it offline.");
+        const pendingAttempt = attempt ?? { draft: draft!, totalCents: total };
+        const pending = {
+          requestId: pendingAttempt.draft.requestId,
+          staffId: staff.id,
+          attempt: pendingAttempt,
+        };
+        await saveOfflineOrder(pending);
+        setPendingOrders((previous) => [
+          ...previous.filter((p) => p.requestId !== pending.requestId),
+          pending,
+        ]);
+        persist({ draft: emptyDraft(), attempt: null, receipt: null });
+        setMessage(
+          "Order saved on this device. It will reach the barista queue after reconnection. No pickup number is available yet.",
+        );
+        return;
+      }
       if (!attempt) {
         const latest = await refresh();
         if (!active.current) return;
@@ -172,6 +219,27 @@ export function OrderEntry({ staff }: { staff: Staff }) {
       }
       persist({ draft: emptyDraft(), attempt: null, receipt: data as Receipt });
     } catch (e) {
+      if (e instanceof TypeError && attempt) {
+        const pending = {
+          requestId: attempt.draft.requestId,
+          staffId: staff.id,
+          attempt,
+        };
+        try {
+          await saveOfflineOrder(pending);
+          setPendingOrders((previous) => [
+            ...previous.filter((p) => p.requestId !== pending.requestId),
+            pending,
+          ]);
+          persist({ draft: emptyDraft(), attempt: null, receipt: null });
+          setMessage(
+            "Connection lost during submission. This order will retry automatically with the same request ID. Do not take payment again.",
+          );
+          return;
+        } catch {
+          // Keep the original attempt locked for manual retry if storage fails.
+        }
+      }
       setMessage(
         e instanceof Error
           ? e.message
@@ -181,6 +249,48 @@ export function OrderEntry({ staff }: { staff: Staff }) {
       sending.current = false;
       setBusy(false);
     }
+  }
+  async function editRejected(order: PendingOrder) {
+    if (draft!.lines.length || saved!.attempt) {
+      setMessage(
+        "Finish the current draft before restoring this rejected order.",
+      );
+      return;
+    }
+    if (
+      !window.confirm(
+        `Reconcile the ${formatPrice(order.attempt.totalCents)} POS payment for ${order.attempt.draft.firstName} before editing and resubmitting. Continue?`,
+      )
+    )
+      return;
+    if (
+      persist({
+        draft: { ...order.attempt.draft, requestId: crypto.randomUUID() },
+        attempt: null,
+        receipt: null,
+      })
+    ) {
+      await offlineStore.pendingOrders.delete(order.requestId);
+      setPendingOrders((previous) =>
+        previous.filter((item) => item.requestId !== order.requestId),
+      );
+      setMessage(
+        "Review the restored order and current total before resubmitting. Reconcile any POS difference first.",
+      );
+    }
+  }
+  async function discardRejected(order: PendingOrder) {
+    if (
+      !window.confirm(
+        `Discard ${order.attempt.draft.firstName}'s rejected order only after refunding the ${formatPrice(order.attempt.totalCents)} POS payment. Has the refund been completed?`,
+      )
+    )
+      return;
+    await offlineStore.pendingOrders.delete(order.requestId);
+    setPendingOrders((previous) =>
+      previous.filter((item) => item.requestId !== order.requestId),
+    );
+    setMessage("Rejected order discarded after refund confirmation.");
   }
   const receipt = saved.receipt;
   if (receipt)
@@ -276,6 +386,85 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           {menuError}
         </p>
       )}
+      {(pendingOrders.length > 0 || syncedOrders.length > 0) && (
+        <section
+          className="mb-6 space-y-3"
+          aria-label="Offline order synchronization"
+        >
+          {pendingOrders.map((order) => (
+            <article
+              key={order.requestId}
+              className="border-l-4 border-signal bg-panel p-4"
+            >
+              <p className="font-bold">
+                {order.needsReview ? "Needs review" : "Pending sync"}:{" "}
+                {order.attempt.draft.firstName} ·{" "}
+                {formatPrice(order.attempt.totalCents)}
+              </p>
+              <p className="text-sm text-muted">
+                {order.attempt.draft.lines.length} drink line
+                {order.attempt.draft.lines.length === 1 ? "" : "s"} · no pickup
+                number yet
+              </p>
+              {order.error && (
+                <p role="alert" className="mt-2 text-error">
+                  {order.error}
+                </p>
+              )}
+              {order.needsReview && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <Button onClick={() => void editRejected(order)}>
+                    Edit after POS reconciliation
+                  </Button>
+                  <Button
+                    variant="quiet"
+                    onClick={() => void discardRejected(order)}
+                  >
+                    Discard after refund
+                  </Button>
+                </div>
+              )}
+            </article>
+          ))}
+          {syncedOrders.map((order) => (
+            <article
+              key={order.requestId}
+              className="border-l-4 border-signal bg-panel p-4"
+            >
+              <p className="font-bold">
+                Synced: #{order.receipt.order_number}{" "}
+                {order.receipt.customer_first_name}
+              </p>
+              {order.receipt.tracking_url && (
+                <a
+                  href={order.receipt.tracking_url}
+                  referrerPolicy="no-referrer"
+                  className="inline-flex min-h-tap items-center underline"
+                >
+                  Open tracking link
+                </a>
+              )}
+              <Button
+                variant="quiet"
+                className="ml-3"
+                onClick={() =>
+                  void offlineStore.syncedOrders
+                    .delete(order.requestId)
+                    .then(() =>
+                      setSyncedOrders((previous) =>
+                        previous.filter(
+                          (item) => item.requestId !== order.requestId,
+                        ),
+                      ),
+                    )
+                }
+              >
+                Dismiss after giving pickup number
+              </Button>
+            </article>
+          ))}
+        </section>
+      )}
       <div className="grid items-start gap-8 lg:grid-cols-[1fr_24rem]">
         <section aria-label="Drink menu">
           <h2 className="section-title mb-4">Choose drinks</h2>
@@ -308,7 +497,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                   </div>
                   <Button
                     className="mt-5"
-                    disabled={locked || !drink.is_available || !connected}
+                    disabled={locked || !drink.is_available}
                     onClick={() =>
                       change({
                         ...draft,
@@ -532,7 +721,6 @@ export function OrderEntry({ staff }: { staff: Staff }) {
             block
             disabled={
               busy ||
-              !connected ||
               !menu ||
               (!saved.attempt &&
                 (!validateDraft(draft) ||

@@ -18,7 +18,7 @@ import type { Staff } from "@/lib/staff-server";
 
 type Entry = { kind: "drink" | "option"; item: Drink | AddOn };
 export function MenuControls({ staff }: { staff: Staff }) {
-  const { menu, connected, error, refresh } = useMenu();
+  const { menu, connected, error, refresh } = useMenu(staff);
   const [edit, setEdit] = useState<(PriceChange & { name: string }) | null>(
     null,
   );

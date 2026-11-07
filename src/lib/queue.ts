@@ -8,10 +8,7 @@ export const queueStatuses = {
 export type QueueStatus = keyof typeof queueStatuses;
 
 export type OrderLifecycleStatus =
-  | "queued"
-  | "preparing"
-  | "ready"
-  | "collected";
+  "queued" | "preparing" | "ready" | "collected";
 
 export type TargetOrderStatus = "preparing" | "ready" | "collected";
 

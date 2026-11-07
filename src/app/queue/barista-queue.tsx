@@ -387,9 +387,7 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
 
     const isOffline = navigator.onLine === false || !connected;
     if (isOffline) {
-      const filtered = pendingRef.current.filter(
-        (u) => u.orderId !== order.id,
-      );
+      const filtered = pendingRef.current.filter((u) => u.orderId !== order.id);
       savePending([
         ...filtered,
         {
@@ -423,7 +421,11 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
           next === "preparing"
             ? prev.map((o) =>
                 o.id === order.id
-                  ? { ...o, status: "preparing" as const, version: o.version + 1 }
+                  ? {
+                      ...o,
+                      status: "preparing" as const,
+                      version: o.version + 1,
+                    }
                   : o,
               )
             : prev.filter((o) => o.id !== order.id);

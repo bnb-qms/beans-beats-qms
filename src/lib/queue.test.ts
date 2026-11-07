@@ -93,9 +93,7 @@ describe("queue helpers", () => {
       expectedVersion: 1,
     };
     expect(isPendingStatusUpdate(pending)).toBe(true);
-    expect(
-      isPendingStatusUpdate({ ...pending, status: "ready" }),
-    ).toBe(false);
+    expect(isPendingStatusUpdate({ ...pending, status: "ready" })).toBe(false);
   });
 
   it("projects pending offline updates onto loaded queue orders", () => {

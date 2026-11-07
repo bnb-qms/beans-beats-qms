@@ -84,12 +84,25 @@ export function BaristaQueueView({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {orders.map((order) => (
-            <article key={order.id} className="rule bg-panel p-4">
+            <article
+              key={order.id}
+              className={
+                order.status === "ready"
+                  ? "animate-arrive border-t-[6px] border-signal bg-panel p-4"
+                  : "rule bg-panel p-4"
+              }
+            >
               <div className="flex items-baseline justify-between gap-3">
                 <p className="numeral text-5xl font-bold">
                   {order.order_number}
                 </p>
-                <p className="eyebrow">{queueStatusLabel(order.status)}</p>
+                <p
+                  className={
+                    order.status === "ready" ? "eyebrow text-ink" : "eyebrow"
+                  }
+                >
+                  {queueStatusLabel(order.status)}
+                </p>
               </div>
               <p className="mt-1 truncate text-xl font-bold">
                 {order.customer_first_name}

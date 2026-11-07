@@ -49,6 +49,23 @@ const sampleOrders: QueueOrder[] = [
       },
     ],
   },
+  {
+    id: "00000000-0000-4000-8000-000000000003",
+    order_number: 16,
+    event_day: "2026-11-26",
+    customer_first_name: "Siti",
+    status: "ready",
+    created_at: "2026-11-26T02:05:00.000Z",
+    version: 3,
+    items: [
+      {
+        id: "00000000-0000-4000-8000-000000000014",
+        menu_item_name: "americano",
+        quantity: 2,
+        add_ons: ["iced"],
+      },
+    ],
+  },
 ];
 
 afterEach(() => {
@@ -56,7 +73,7 @@ afterEach(() => {
 });
 
 describe("BaristaQueueView", () => {
-  it("renders order number, customer name, drink details, and Queued/Preparing status in sequence", () => {
+  it("renders order number, customer name, drink details, and Queued/Preparing/Ready status in sequence", () => {
     const html = renderToStaticMarkup(
       createElement(BaristaQueueView, {
         orders: sampleOrders,
@@ -78,7 +95,14 @@ describe("BaristaQueueView", () => {
     expect(html).toContain("Preparing");
     expect(html).toContain("Flat white · Hot");
 
+    expect(html).toContain("16");
+    expect(html).toContain("Siti");
+    expect(html).toContain("Ready");
+    expect(html).toContain("border-signal");
+    expect(html).toContain("Americano · Iced");
+
     expect(html.indexOf("Mei")).toBeLessThan(html.indexOf("Arjun"));
+    expect(html.indexOf("Arjun")).toBeLessThan(html.indexOf("Siti"));
   });
 
   it("keeps previously loaded orders visible with an offline notice when disconnected", () => {

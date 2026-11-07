@@ -2,12 +2,14 @@
 
 Issue #14 · Owner Win · Branch `feat/16`
 
-Read [plan](plan.md), [story map](spec.md), [data model](data-model.md), [contract](contracts/offline-sync.md), and [quickstart](quickstart.md). This checklist is the original plan, not a live completion record; the branch now contains the F16 implementation. Tests are required by `docs/README.md` and `docs/building.md`. A `[P]` marker means the task may run in parallel with other tasks that edit different files after its prerequisites are complete.
+Read [plan](plan.md), [story map](spec.md), [data model](data-model.md), [contract](contracts/offline-sync.md), and [quickstart](quickstart.md). This checklist began as the original plan. Checked tasks are complete; unchecked tasks still need work or validation. Tests are required by `docs/README.md` and `docs/building.md`. A `[P]` marker means the task may run in parallel with other tasks that edit different files after its prerequisites are complete.
+
+The branch now has Dexie storage, offline queue/order UI, reconnect retry, a service worker, and tests for rejected orders, receipts and cached staff. The production browser and event-device scenarios in [quickstart](quickstart.md) remain unverified, so this PR stays in draft.
 
 ## Phase 1: Setup
 
-- [ ] T001 Confirm `feat/16` is the issue #14 branch, update it from `main` without discarding work, and read `AGENTS.md`, `docs/README.md`, `docs/decisions.md`, `docs/building.md`, `docs/specs/F16-offline-mode-and-sync.md`, and the installed Next.js guides under `node_modules/next/dist/docs/01-app/` before implementation.
-- [ ] T002 Inspect merged F4/F5 queue route, status RPC, component and tests under `src/app/queue/`, `src/app/api/`, and `supabase/migrations/`; replace the provisional route names in `docs/plans/F16-offline-mode-and-sync/contracts/offline-sync.md` with their actual paths and record missing version checks before coding.
+- [x] T001 Confirm `feat/16` is the issue #14 branch, update it from `main` without discarding work, and read `AGENTS.md`, `docs/README.md`, `docs/decisions.md`, `docs/building.md`, `docs/specs/F16-offline-mode-and-sync.md`, and the installed Next.js guides under `node_modules/next/dist/docs/01-app/` before implementation.
+- [x] T002 Inspect merged F4/F5 queue route, status RPC, component and tests under `src/app/queue/`, `src/app/api/`, and `supabase/migrations/`; replace the provisional route names in `docs/plans/F16-offline-mode-and-sync/contracts/offline-sync.md` with their actual paths and record missing version checks before coding.
 - [ ] T003 Add Dexie to `package.json` and `package-lock.json` after checking the selected version's browser support; use no other new dependency. Run `npm run typecheck`, stage these two files only, and commit `Add Dexie for offline storage`.
 
 ## Phase 2: Foundation

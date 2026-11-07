@@ -156,7 +156,9 @@ it("rejects wrong content types, oversized and malformed bodies before writing",
 });
 
 it("never mutates data on a rejected write: the write runs only on a fully accepted request", async () => {
-  await expect(guardedWrite(patchRequest("https://other.test"))).rejects.toBeInstanceOf(HttpError);
+  await expect(
+    guardedWrite(patchRequest("https://other.test")),
+  ).rejects.toBeInstanceOf(HttpError);
   mocks.get.mockReturnValue(undefined);
   await expect(guardedWrite(patchRequest())).rejects.toMatchObject({
     status: 401,
@@ -181,10 +183,13 @@ it("answers with no-store JSON and a safe generic message for unknown failures",
   expect(await known.json()).toEqual({
     error: "This item changed since you started editing.",
   });
-  const unknown = await failure(new Error("password=secret connection refused"));
+  const unknown = await failure(
+    new Error("password=secret connection refused"),
+  );
   expect(unknown.status).toBe(503);
   expect(await unknown.json()).toEqual({
-    error: "Cannot reach the staff service. Your changes are retained; try again.",
+    error:
+      "Cannot reach the staff service. Your changes are retained; try again.",
   });
 });
 

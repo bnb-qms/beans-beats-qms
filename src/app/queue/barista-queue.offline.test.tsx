@@ -18,6 +18,12 @@ const order: QueueOrder = {
   version: 1,
   items: [],
 };
+const secondOrder: QueueOrder = {
+  ...order,
+  id: "00000000-0000-4000-8000-000000000002",
+  order_number: 15,
+  customer_first_name: "Ravi",
+};
 let host: HTMLDivElement;
 let root: Root;
 
@@ -86,6 +92,60 @@ it("keeps the original status when IndexedDB cannot save an offline tap", async 
   expect((await store.offlineStore.snapshots.get(staff.id))?.pending).toEqual(
     [],
   );
+});
+
+it("keeps both quick offline updates when the first save is delayed", async () => {
+  await store.updateSnapshot(staff, { orders: [order, secondOrder] });
+  await mountQueue();
+  let finish!: () => void;
+  const blocked = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  const write = store.updateSnapshot;
+  vi.spyOn(store, "updateSnapshot").mockImplementation(async (...args) => {
+    await blocked;
+    return write(...args);
+  });
+  const buttons = [...host.querySelectorAll("button")].filter(
+    (button) => button.textContent === "Mark preparing",
+  );
+  await act(async () => {
+    buttons[0].click();
+    buttons[1].click();
+  });
+  await act(async () => finish());
+  await vi.waitFor(async () =>
+    expect(
+      (await store.offlineStore.snapshots.get(staff.id))?.pending
+        .map((update) => update.orderNumber)
+        .sort(),
+    ).toEqual([14, 15]),
+  );
+});
+
+it("keeps the queue usable with legacy updates when migration fails", async () => {
+  sessionStorage.setItem(
+    pendingUpdatesStorageKey(staff.id),
+    JSON.stringify([
+      {
+        orderId: secondOrder.id,
+        orderNumber: secondOrder.order_number,
+        customerFirstName: secondOrder.customer_first_name,
+        fromStatus: "queued",
+        status: "preparing",
+        expectedVersion: secondOrder.version,
+      },
+    ]),
+  );
+  vi.spyOn(store, "updateSnapshot").mockRejectedValue(new Error("disk full"));
+  await act(async () => root.render(<BaristaQueue staff={staff} />));
+  await vi.waitFor(() =>
+    expect(host.textContent).toContain("Offline storage is unavailable"),
+  );
+  expect(host.querySelector("button")?.disabled).toBe(false);
+  expect(
+    sessionStorage.getItem(pendingUpdatesStorageKey(staff.id)),
+  ).not.toBeNull();
 });
 
 it("migrates a newer session update over an older snapshot", async () => {

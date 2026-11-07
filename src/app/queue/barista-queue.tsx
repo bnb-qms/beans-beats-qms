@@ -239,40 +239,48 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
   const [updatingIds, setUpdatingIds] = useState<string[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState("");
+  const [storageError, setStorageError] = useState("");
   const active = useRef(true);
   const pendingFetch = useRef<Promise<QueueOrder[]> | null>(null);
   const syncing = useRef(false);
   const pendingRef = useRef<PendingStatusUpdate[]>([]);
+  const pendingWrite = useRef<Promise<void>>(Promise.resolve());
   const inFlightOrders = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    pendingRef.current = pendingUpdates;
-  }, [pendingUpdates]);
-
   const savePending = useCallback(
-    async (next: PendingStatusUpdate[]) => {
-      try {
-        await updateSnapshot(staff, { pending: next });
-        pendingRef.current = next;
-        setPendingUpdates(next);
-        return true;
-      } catch {
-        setError("Could not save pending updates on this device.");
-        return false;
-      }
+    (change: (current: PendingStatusUpdate[]) => PendingStatusUpdate[]) => {
+      const save = pendingWrite.current.then(async () => {
+        const next = change(pendingRef.current);
+        try {
+          await updateSnapshot(staff, { pending: next });
+          pendingRef.current = next;
+          setPendingUpdates(next);
+          setStorageError("");
+          return true;
+        } catch {
+          setStorageError("Could not save pending updates on this device.");
+          return false;
+        }
+      });
+      pendingWrite.current = save.then(
+        () => {},
+        () => {},
+      );
+      return save;
     },
     [staff],
   );
 
   useEffect(() => {
     let live = true;
+    let pending = readPendingUpdates(staff.id);
     void offlineStore.snapshots
       .get(staff.id)
       .then(async (snapshot) => {
         if (!live) return;
         if (snapshot) setOrders(snapshot.orders);
-        let pending = snapshot?.pending ?? [];
-        const legacy = readPendingUpdates(staff.id);
+        const legacy = pending;
+        pending = snapshot?.pending ?? [];
         if (legacy.length) {
           pending = [
             ...pending.filter(
@@ -292,11 +300,15 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
           // IndexedDB now holds the pending updates.
         }
       })
-      .catch(() =>
-        setError(
+      .catch(() => {
+        if (!live) return;
+        pendingRef.current = pending;
+        setPendingUpdates(pending);
+        setPendingReady(true);
+        setStorageError(
           "Offline storage is unavailable. Pending updates may not be retained.",
-        ),
-      );
+        );
+      });
     return () => {
       live = false;
     };
@@ -362,8 +374,8 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
         });
         if (response.ok) {
           if (
-            !(await savePending(
-              pendingRef.current.filter(
+            !(await savePending((current) =>
+              current.filter(
                 (u) =>
                   !(
                     u.orderId === item.orderId &&
@@ -385,8 +397,8 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
             payload?.error ??
             "This offline status update conflicted with a change made by another barista. Review the current queue status.";
           if (
-            !(await savePending(
-              pendingRef.current.map((u) =>
+            !(await savePending((current) =>
+              current.map((u) =>
                 u.orderId === item.orderId ? { ...u, conflict: message } : u,
               ),
             ))
@@ -441,15 +453,14 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
     if (isOffline) {
       inFlightOrders.current.add(order.id);
       setUpdatingIds((prev) => [...prev, order.id]);
-      const filtered = pendingRef.current.filter(
-        (u) =>
-          !(
-            u.orderId === order.id &&
-            (u.expectedVersion === order.version || Boolean(u.conflict))
-          ),
-      );
-      await savePending([
-        ...filtered,
+      await savePending((current) => [
+        ...current.filter(
+          (u) =>
+            !(
+              u.orderId === order.id &&
+              (u.expectedVersion === order.version || Boolean(u.conflict))
+            ),
+        ),
         {
           orderId: order.id,
           orderNumber: order.order_number,
@@ -516,7 +527,9 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
 
   async function dismissConflict(orderId: string) {
     if (
-      await savePending(pendingRef.current.filter((u) => u.orderId !== orderId))
+      await savePending((current) =>
+        current.filter((u) => u.orderId !== orderId),
+      )
     )
       void refresh().catch(() => {});
   }
@@ -528,7 +541,7 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
       pendingReady={pendingReady}
       updatingIds={updatingIds}
       connected={connected}
-      error={error}
+      error={storageError || error}
       onRetry={() => void refresh().catch(() => {})}
       onAdvance={(order) => void advanceOrder(order)}
       onDismissConflict={dismissConflict}

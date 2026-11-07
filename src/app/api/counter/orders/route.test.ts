@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ requireStaff: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/lib/staff-server", () => {
@@ -52,6 +52,33 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.requireStaff.mockResolvedValue({ id, role: "barista" });
   mocks.rpc.mockResolvedValue({ data: { order_number: 1 }, error: null });
+});
+afterEach(() => vi.unstubAllEnvs());
+it("supplies a private QR for the confirmed order and preserves it on retry", async () => {
+  vi.stubEnv("TRACKING_BASE_URL", "");
+  const token = "ab".repeat(32);
+  mocks.rpc.mockResolvedValue({
+    data: { id, order_number: 1, tracking_token: token },
+    error: null,
+  });
+  const first = await (await POST(request(input))).json();
+  expect(first.tracking_url).toBe(`https://booth.test/o/track#${token}`);
+  expect(first.tracking_qr).toMatch(/^data:image\/png;base64,/);
+  expect(first).not.toHaveProperty("tracking_token");
+  expect(await (await POST(request(input))).json()).toEqual(first);
+});
+it("keeps a saved order successful when HTTPS QR setup is unavailable", async () => {
+  vi.stubEnv("TRACKING_BASE_URL", "http://insecure.test");
+  mocks.rpc.mockResolvedValue({
+    data: { id, order_number: 1, tracking_token: "ab".repeat(32) },
+    error: null,
+  });
+  const response = await POST(request(input));
+  expect(response.status).toBe(200);
+  const receipt = await response.json();
+  expect(receipt.id).toBe(id);
+  expect(receipt.tracking_qr).toBeNull();
+  expect(receipt.tracking_warning).toContain("Order saved");
 });
 it("uses server staff identity rather than a supplied actor or role", async () => {
   expect((await POST(request(input))).status).toBe(200);

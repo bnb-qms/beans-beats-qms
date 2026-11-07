@@ -3,6 +3,7 @@ import Link from "next/link";
 const modules = [
   { href: "/order", name: "Order screen", who: "Staff" },
   { href: "/queue", name: "Barista queue", who: "Staff" },
+  { href: "/scan", name: "Pickup scanner", who: "Pickup laptop" },
   { href: "/board", name: "Ready board", who: "Booth display" },
   { href: null, name: "Guest status page", who: "Guests, via receipt QR" },
   { href: "/menu", name: "Menu controls", who: "Admin" },

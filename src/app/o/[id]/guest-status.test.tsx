@@ -7,6 +7,7 @@ import { initialGuestState, type GuestTrackingState } from "./watch-order";
 function render(
   status: "ready" | "preparing" | "collected" | "cancelled",
   reconnecting = false,
+  qr: string | null = null,
 ) {
   const result: GuestTrackingState = {
     ...initialGuestState,
@@ -16,7 +17,12 @@ function render(
     reconnecting,
   };
   return renderToStaticMarkup(
-    createElement(GuestStatusView, { result, sample: false, onRefresh() {} }),
+    createElement(GuestStatusView, {
+      result,
+      sample: false,
+      qr,
+      onRefresh() {},
+    }),
   );
 }
 
@@ -48,4 +54,15 @@ it("keeps changing timestamps and reconnecting notices outside the Ready live re
   expect(liveRegion).not.toContain("Reconnecting");
   expect(html).toContain("Reconnecting — status may be out of date");
   expect(html).toContain('dateTime="2026-11-07T02:00:00.000Z"');
+});
+
+it.each([
+  ["preparing", true],
+  ["ready", true],
+  ["collected", false],
+  ["cancelled", false],
+] as const)("shows the collection QR for %s: %s", (status, shown) => {
+  const html = render(status, false, "data:image/png;base64,QR");
+  expect(html.includes("data:image/png;base64,QR")).toBe(shown);
+  expect(html.includes("Show this QR at the pickup screen")).toBe(shown);
 });

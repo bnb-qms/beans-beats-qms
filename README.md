@@ -82,6 +82,7 @@ Next.js (App Router, Route Handlers) · TypeScript · Tailwind CSS · Supabase (
 | --------------------- | --------- |
 | 1. Order screen       | `/order`  |
 | 2. Barista queue      | `/queue`  |
+| Pickup scanner (F20)  | `/scan`   |
 | 3. Guest status page  | `/o/[id]` |
 | 4. Ready board        | `/board`  |
 | 5. Menu controls      | `/menu`   |
@@ -192,7 +193,7 @@ During connection failures, the last confirmed order stays visible with a
 reconnecting notice and last-update time. Failed requests back off up to 30
 seconds; returning to the page or reconnecting triggers an immediate check.
 No sound, SMS, notification permission or locked-phone delivery is required.
-Collection QR remains deferred. Without Supabase configuration, `/o/example`
+The tracking page also shows its own QR for the pickup scanner (F20). Without Supabase configuration, `/o/example`
 shows labelled sample data; other links do not show sample orders.
 
 Run `supabase/tests/order_tracking.sql` against a disposable migrated database to
@@ -227,6 +228,20 @@ npm run build
 - `priority.*`: High (must do), Medium (nice to have), Low (unlikely to do)
 - `severity.*`: for bugs, VeryLow to High
 - `module.*`: order, queue, guest, board, menu, report; `area.*`: sync, auth for cross-cutting work
+
+## Pickup scanner (F20)
+
+Apply `supabase/migrations/20261108000000_collection_scanner.sql` and run `supabase/tests/collection_scanner.sql` against a disposable database to check it.
+
+Booth set-up, once per event day:
+
+1. Open `/scan` on the pickup laptop in Chrome or Edge, facing the customers, and sign in as a barista. The 12-hour sign-in covers a full day.
+2. Allow camera access when the browser asks. If it was refused, allow it in the site settings and press **Try camera again**.
+3. Leave the page open (full screen with F11). It needs no taps.
+
+A customer holds up the QR on their tracking page. Green means the order is now Collected. Amber means the barista should check: the drink is not ready, the order was cancelled, or the scanner could not confirm it. The barista's **Mark collected** button on `/queue` still works for customers without a QR.
+
+While online, the scanner keeps a copy of today's Ready orders (hashed codes only). When the connection drops, a code in that copy still shows green and is saved on the laptop, then sent automatically once back online. A code not in the copy shows amber. A saved scan the server rejects is listed under **Needs review** on `/scan`; check that order on `/queue`, then dismiss it.
 
 ## Daily reset
 

@@ -6,7 +6,7 @@
 
 ## Existing integration
 
-**Decision:** Build on F4/F5's authenticated queue read and version-checked status route once they land. This branch currently has only a `/queue` placeholder, so do not invent a competing queue. Continue using `StaffWorkspace`, `requireStaff`, server-supplied staff IDs, `requestJson` session-ended behavior, and `counter_submit_order` with its unique `client_request_id`. **Rationale:** current staff pages use a signed cookie, not Supabase Auth; the legacy status RPC is not authorized for this model. **Alternative:** direct browser table access or a second queue API; rejected by `docs/building.md`.
+**Decision:** Build on F4/F5's authenticated queue read and version-checked status route. They are now merged at `/api/queue/orders`. Continue using `StaffWorkspace`, `requireStaff`, server-supplied staff IDs, `requestJson` session-ended behavior, and `counter_submit_order` with its unique `client_request_id`. **Rationale:** current staff pages use a signed cookie, not Supabase Auth; the legacy status RPC is not authorized for this model. **Alternative:** direct browser table access or a second queue API; rejected by `docs/building.md`.
 
 ## Local persistence and shell
 

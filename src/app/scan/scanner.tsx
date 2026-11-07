@@ -3,11 +3,12 @@
 import jsQR from "jsqr";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
-import { offlineStore, type PendingScan } from "@/lib/offline-store";
+import type { PendingScan } from "@/lib/offline-store";
 import { trackingCodeFromQr } from "@/lib/scan";
 import {
   dismissScan,
   refreshReadyCopy,
+  savedScans,
   scanCode,
   syncScans,
   type ScanDisplay,
@@ -32,13 +33,8 @@ export function Scanner({ staff }: { staff: Staff }) {
   const [scans, setScans] = useState<PendingScan[]>([]);
 
   const loadScans = useCallback(async () => {
-    setScans(
-      await offlineStore.pendingScans
-        .where("staffId")
-        .equals(staff.id)
-        .toArray(),
-    );
-  }, [staff.id]);
+    setScans(await savedScans());
+  }, []);
 
   const read = useCallback(
     async (text: string) => {
@@ -95,25 +91,31 @@ export function Scanner({ staff }: { staff: Staff }) {
       });
       if (found) void readRef.current(found.data);
     };
+    const stop = (s?: MediaStream) =>
+      s?.getTracks().forEach((track) => track.stop());
     (async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        const acquired = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: { ideal: 1280 } },
           audio: false,
         });
-        if (!live || !video.current) return;
+        // The page may have closed while the browser asked for permission.
+        if (!live || !video.current) return stop(acquired);
+        stream = acquired;
         video.current.srcObject = stream;
         await video.current.play();
         setCamera("on");
         frame = requestAnimationFrame(tick);
       } catch {
+        stop(stream);
+        stream = undefined;
         if (live) setCamera("blocked");
       }
     })();
     return () => {
       live = false;
       cancelAnimationFrame(frame);
-      stream?.getTracks().forEach((track) => track.stop());
+      stop(stream);
     };
   }, [cameraTry]);
 
@@ -124,7 +126,7 @@ export function Scanner({ staff }: { staff: Staff }) {
       const isOnline = navigator.onLine !== false;
       setOnline(isOnline);
       if (isOnline) {
-        await syncScans(staff);
+        await syncScans();
         const fresh = await refreshReadyCopy(staff);
         if (live) setOnline(fresh);
       }

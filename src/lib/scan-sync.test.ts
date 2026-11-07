@@ -6,6 +6,7 @@ import { hashCode } from "./scan";
 import {
   dismissScan,
   refreshReadyCopy,
+  REQUEST_MS,
   scanCode,
   syncScans,
 } from "./scan-sync";
@@ -95,6 +96,31 @@ describe("scanCode online", () => {
   });
 });
 
+describe("stalled requests", () => {
+  it("treats a hanging request as offline instead of freezing the scanner", async () => {
+    await saveCopy();
+    // Never answers, like a request stuck on weak Wi-Fi; only the abort ends it.
+    fetchMock.mockImplementation(
+      (_url, init: RequestInit) =>
+        new Promise((_resolve, reject) =>
+          init.signal?.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          ),
+        ),
+    );
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const result = scanCode(staff, code);
+      await vi.advanceTimersByTimeAsync(REQUEST_MS);
+      vi.useRealTimers();
+      expect((await result).tone).toBe("collected");
+      expect(await offlineStore.pendingScans.count()).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("scanCode offline", () => {
   beforeEach(() => online(false));
 
@@ -137,7 +163,7 @@ describe("syncScans", () => {
         ? reply(200, outcome("collected"))
         : reply(200, outcome("not_ready")),
     );
-    await syncScans(staff);
+    await syncScans();
     expect(await offlineStore.pendingScans.get(code)).toBeUndefined();
     expect(await offlineStore.pendingScans.get(other)).toMatchObject({
       needsReview: true,
@@ -146,10 +172,22 @@ describe("syncScans", () => {
     expect(await offlineStore.pendingScans.count()).toBe(0);
   });
 
+  it("sends scans saved by a staff member who has since signed out", async () => {
+    await offlineStore.pendingScans.put({
+      code,
+      staffId: "staff-who-left",
+      label: "#12 Mei",
+      scannedAt: Date.now(),
+    });
+    fetchMock.mockReturnValue(reply(200, outcome("collected")));
+    await syncScans();
+    expect(await offlineStore.pendingScans.count()).toBe(0);
+  });
+
   it("keeps scans when the server is unreachable", async () => {
     await saveScan(code);
     fetchMock.mockRejectedValue(new TypeError("offline"));
-    await syncScans(staff);
+    await syncScans();
     expect(await offlineStore.pendingScans.get(code)).toMatchObject({
       code,
     });

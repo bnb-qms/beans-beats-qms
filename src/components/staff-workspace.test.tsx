@@ -104,7 +104,9 @@ async function signInViaForm(username: string) {
   const pass = form.querySelector<HTMLInputElement>('input[name="password"]')!;
   user.value = username;
   pass.value = "secret";
-  const submit = form.querySelector('button[type="submit"]')!;
+  const submit = form.querySelector<HTMLButtonElement>(
+    'button[type="submit"]',
+  )!;
   await act(async () => {
     submit.click();
     await new Promise((r) => setTimeout(r, 20));

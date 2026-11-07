@@ -39,8 +39,25 @@ find_pg_bin() {
     /usr/local/opt/postgresql@15/bin \
     /usr/lib/postgresql/17/bin \
     /usr/lib/postgresql/16/bin \
-    /usr/lib/postgresql/15/bin; do
+    /usr/lib/postgresql/15/bin \
+    /usr/lib/postgresql/14/bin; do
     if [ -x "$candidate/psql" ] && [ -x "$candidate/initdb" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# External mode only needs the client; the managed mode needs initdb + pg_ctl.
+find_psql_bin() {
+  if command -v psql >/dev/null 2>&1; then
+    dirname "$(command -v psql)"
+    return 0
+  fi
+  local candidate
+  for candidate in /usr/lib/postgresql/17/bin /usr/lib/postgresql/16/bin /usr/lib/postgresql/15/bin /opt/homebrew/opt/postgresql@15/bin; do
+    if [ -x "$candidate/psql" ]; then
       printf '%s\n' "$candidate"
       return 0
     fi
@@ -60,9 +77,6 @@ is_disposable_url() {
     *) return 1 ;;
   esac
 }
-
-PSQL_BIN="$(find_pg_bin)" || die "PostgreSQL client/server binaries (psql, initdb) not found on PATH or a known Homebrew/lib path"
-log "Using Postgres from $PSQL_BIN"
 
 TMP_DIR=""
 ERR_DIR="$(mktemp -d "${TMPDIR:-/tmp}/bb-test-db-err.XXXXXX")"
@@ -118,8 +132,12 @@ use_external() {
 }
 
 if [ -n "${TEST_DATABASE_URL:-}" ]; then
+  PSQL_BIN="$(find_psql_bin)" || die "psql client not found"
+  log "Using Postgres client from $PSQL_BIN"
   use_external "$TEST_DATABASE_URL"
 else
+  PSQL_BIN="$(find_pg_bin)" || die "PostgreSQL client/server binaries (psql, initdb) not found on PATH or a known Homebrew/lib path"
+  log "Using Postgres from $PSQL_BIN"
   start_managed
 fi
 

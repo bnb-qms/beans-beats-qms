@@ -82,7 +82,87 @@ it("keeps a saved order successful when HTTPS QR setup is unavailable", async ()
 });
 it("uses server staff identity rather than a supplied actor or role", async () => {
   expect((await POST(request(input))).status).toBe(200);
-  expect(mocks.rpc.mock.calls[0][1].p_staff_id).toBe(id);
+  expect(mocks.rpc.mock.calls[0][1]).toEqual({
+    p_staff_id: id,
+    p_request_id: id,
+    p_first_name: "Bella",
+    p_mobile: null,
+    p_consent: false,
+    p_items: [{ menu_item_id: id, quantity: 1, add_on_ids: [] }],
+    p_total_cents: 800,
+  });
+});
+it("accepts the boundary quantity and forwards the draft verbatim", async () => {
+  const response = await POST(
+    request({
+      ...input,
+      draft: {
+        ...input.draft,
+        lines: [
+          { id: "line", menu_item_id: id, quantity: 100, add_on_ids: [] },
+        ],
+      },
+    }),
+  );
+  expect(response.status).toBe(200);
+  expect(mocks.rpc.mock.calls[0][1].p_items[0].quantity).toBe(100);
+});
+it("rejects structurally invalid drafts before touching the database", async () => {
+  const bad = [
+    { ...input, totalCents: -1 },
+    { ...input, totalCents: 100000000 },
+    { ...input, totalCents: "800" },
+    { draft: input.draft },
+    { ...input, draft: null },
+    { ...input, draft: { ...input.draft, lines: [] } },
+    { ...input, draft: { ...input.draft, firstName: " " } },
+    {
+      ...input,
+      draft: {
+        ...input.draft,
+        lines: [
+          { id: "line", menu_item_id: "nope", quantity: 1, add_on_ids: [] },
+        ],
+      },
+    },
+    {
+      ...input,
+      draft: {
+        ...input.draft,
+        lines: [{ id: "line", menu_item_id: id, quantity: 0, add_on_ids: [] }],
+      },
+    },
+    {
+      ...input,
+      draft: {
+        ...input.draft,
+        lines: [
+          { id: "line", menu_item_id: id, quantity: 101, add_on_ids: [] },
+        ],
+      },
+    },
+    {
+      ...input,
+      draft: {
+        ...input.draft,
+        lines: [
+          {
+            id: "line",
+            menu_item_id: id,
+            quantity: 1,
+            add_on_ids: [id, id, id],
+          },
+        ],
+      },
+    },
+    { ...input, draft: { ...input.draft, mobile: "71234567", consent: true } },
+  ];
+  for (const data of bad) {
+    const response = await POST(request(data));
+    expect(response.status, JSON.stringify(data)).toBe(400);
+    expect(await response.json()).toHaveProperty("error");
+  }
+  expect(mocks.rpc).not.toHaveBeenCalled();
 });
 it("does not write for signed-out, cross-origin or malformed requests", async () => {
   expect((await POST(request(input, "https://attacker.test"))).status).toBe(
@@ -92,6 +172,31 @@ it("does not write for signed-out, cross-origin or malformed requests", async ()
   mocks.requireStaff.mockRejectedValue(new Error("No session"));
   expect((await POST(request(input))).status).toBe(503);
   expect(mocks.rpc).not.toHaveBeenCalled();
+});
+it("maps every known database error to its safe, plain message", async () => {
+  const cases: [string, number, string][] = [
+    ["BB_UNAVAILABLE", 409, "reconcile it on the POS"],
+    ["BB_PRICE_CHANGED", 409, "updated total"],
+    ["BB_INVALID", 409, "draft is retained"],
+    ["BB_FORBIDDEN", 403, "Sign in again"],
+  ];
+  for (const [code, status, fragment] of cases) {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: code } });
+    const response = await POST(request(input));
+    expect(response.status, code).toBe(status);
+    const data = await response.json();
+    expect(data.error, code).toContain(fragment);
+    expect(data.error, code).not.toContain(code);
+  }
+  mocks.rpc.mockResolvedValue({
+    data: null,
+    error: { message: "connection refused to secret-host:5432" },
+  });
+  const response = await POST(request(input));
+  expect(response.status).toBe(503);
+  const data = await response.json();
+  expect(data.error).toContain("Retry this same draft");
+  expect(data.error).not.toContain("secret-host");
 });
 it("reports price conflicts without exposing raw database errors", async () => {
   mocks.rpc.mockResolvedValue({

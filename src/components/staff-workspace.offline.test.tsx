@@ -37,7 +37,10 @@ it("restores only the latest verified account after a network failure", async ()
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
-  expect(host.textContent).toContain("Account: barista");
+  // The IndexedDB read can take longer than 10 ms when the whole suite runs.
+  await vi.waitFor(() =>
+    expect(host.textContent).toContain("Account: barista"),
+  );
   expect(host.textContent).not.toContain("Account: admin");
 });
 
@@ -59,6 +62,6 @@ it("does not restore cached access when the server rejects the session", async (
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
-  expect(host.textContent).toContain("Staff sign-in");
+  await vi.waitFor(() => expect(host.textContent).toContain("Staff sign-in"));
   expect(host.textContent).not.toContain("Account: admin");
 });

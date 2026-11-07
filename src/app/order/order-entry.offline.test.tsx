@@ -83,8 +83,13 @@ it("saves an offline order without a provisional pickup number, then shows a syn
     submit!.click();
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
-  expect(await offlineStore.pendingOrders.count()).toBe(1);
-  expect(host.textContent).toContain("Pending sync: Mei");
+  // The IndexedDB write can take longer than 10 ms when the whole suite runs.
+  await vi.waitFor(async () =>
+    expect(await offlineStore.pendingOrders.count()).toBe(1),
+  );
+  await vi.waitFor(() =>
+    expect(host.textContent).toContain("Pending sync: Mei"),
+  );
   expect(host.textContent).toContain("no pickup number yet");
   await offlineStore.syncedOrders.put({
     requestId: "00000000-0000-4000-8000-000000000002",
@@ -108,7 +113,7 @@ it("saves an offline order without a provisional pickup number, then shows a syn
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
-  expect(host.textContent).toContain("Synced: #12 Mei");
+  await vi.waitFor(() => expect(host.textContent).toContain("Synced: #12 Mei"));
 });
 
 it("lets staff restore a rejected order for reconciliation", async () => {

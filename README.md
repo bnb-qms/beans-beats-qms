@@ -230,4 +230,37 @@ npm run build
 
 ## Daily reset
 
-_To be written by whoever owns event-day reset (F19)._
+The app starts a new event day by itself at midnight Singapore time. There is no reset button and nothing is deleted. This replaces the "Start new day" button in the F19 spec (see `docs/decisions.md`, 7 Nov).
+
+- Every order belongs to the Singapore date the server receives it on. Pickup numbers start again from 1 each day.
+- The barista queue (`/queue`) and ready board (`/board`) only load today's orders, so after a fresh load each morning both are empty.
+- Earlier days stay in the reports: pick the date in Daily Totals or the CSV export (`/report`, admin only).
+
+A screen that lost its connection keeps showing the orders it last loaded, even across midnight, and the queue still accepts offline status taps on them. So it only clears once it is back online and has refreshed.
+
+At the end of each event day (26-29 Nov), the booth lead:
+
+1. Checks `/queue` for anything still Queued, Preparing or Ready, and marks collected drinks as collected. Anything left over drops off the queue and board at midnight but still counts in that day's totals.
+2. Opens `/order` on each booth device and checks that no orders show "Pending sync" or "Needs review". An offline order that only syncs after midnight is counted on the new day.
+3. Downloads that day's CSV from `/report` as a backup.
+4. Uses **Sign out** on every staff device.
+
+Before opening the next morning, the booth lead connects every booth device to the internet, reloads `/queue` and `/board`, and checks that both show no orders, the queue shows no "Offline" or "pending sync" status, and the board shows no "Reconnecting…" note.
+
+## Personal data clean-up (F18)
+
+Guest first names and mobile numbers must be deleted within 30 days after the event ends on 29 Nov 2026, as the privacy notice on the guest page says. Sales records stay, without personal data.
+
+An offline order is dated the day it reaches the server, so a 29 Nov order that syncs late can be dated 30 Nov or later. Run the clean-up only after every device has sent its orders, including orders submitted on the clean-up day.
+
+Between 30 Nov and 29 Dec 2026, Win or Henry:
+
+1. Opens `/order` on every booth device while online and checks that nothing shows "Pending sync" or "Needs review". Resolve any that do.
+2. Clears the app's site data on every booth device (browser settings, site data), so no device still holds drafts or offline orders that could sync later.
+3. Runs this once in the Supabase SQL Editor for the team project:
+
+```sql
+select public.erase_guest_details((now() at time zone 'Asia/Singapore')::date, true);
+```
+
+The explicit `true` includes orders submitted today; without it, the function refuses to touch the current Singapore day. It replaces names with "Guest", removes mobile numbers and consent times, and returns how many orders changed. Running it again changes nothing. Daily totals and CSV exports stay the same.

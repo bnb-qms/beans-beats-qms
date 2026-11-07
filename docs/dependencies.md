@@ -23,15 +23,15 @@ When your PR adds a migration, tell Henry or Win so it gets applied to the team 
 
 ## Remaining features
 
-| Feature                      | Owner | Can start now? | Needs                                                                                                                                             |
-| ---------------------------- | ----- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F4 Order queue               | Pooj  | Yes            | A staff route listing today's `queued`, `preparing` and `ready` orders with their items (new `p_staff_id` function).                              |
-| F5 One-tap status updates    | Pooj  | After F4       | A new `p_staff_id` status function with the `version` check, reusing the transitions in Win's `update_order_status`.                              |
-| F6 Live queue updates        | Pooj  | After F4       | Poll the F4 route every few seconds (staff pages can't use Realtime on `orders` either, because sign-in is not Supabase Auth).                    |
-| F16 Offline mode and sync    | Win   | After F4, F5   | Keep the queue readable offline, queue status changes and new orders for later sync; see the 7 Nov owner clarification in `decisions.md`.         |
-| F17 Staff logins             | TL    | Mostly done    | Sign-in exists (F1). Left: a sign-out button on each staff page, test logins for judges, and role checks on any new routes.                       |
-| F18 Personal data handling   | Henry | Yes            | Privacy notice built in F7; a clean-up step that removes names and mobiles after the event.                                                       |
-| F19 Reset between event days | Henry | Yes            | Numbers already restart per Singapore day. Left: the README "Daily reset" steps and, if wanted, a check that the board and queue show only today. |
+| Feature                      | Owner | Can start now? | Needs                                                                                                                                     |
+| ---------------------------- | ----- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| F4 Order queue               | Pooj  | Yes            | A staff route listing today's `queued`, `preparing` and `ready` orders with their items (new `p_staff_id` function).                      |
+| F5 One-tap status updates    | Pooj  | After F4       | A new `p_staff_id` status function with the `version` check, reusing the transitions in Win's `update_order_status`.                      |
+| F6 Live queue updates        | Pooj  | After F4       | Poll the F4 route every few seconds (staff pages can't use Realtime on `orders` either, because sign-in is not Supabase Auth).            |
+| F16 Offline mode and sync    | Win   | After F4, F5   | Keep the queue readable offline, queue status changes and new orders for later sync; see the 7 Nov owner clarification in `decisions.md`. |
+| F17 Staff logins             | TL    | Mostly done    | Sign-in exists (F1). Left: a sign-out button on each staff page, test logins for judges, and role checks on any new routes.               |
+| F18 Personal data handling   | Henry | Done           | Privacy notice built in F7; clean-up function `erase_guest_details` and README steps.                                                     |
+| F19 Reset between event days | Henry | Done           | Numbers restart per Singapore day; queue and board show only today; README "Daily reset" steps written.                                   |
 
 ## The order the pitch needs
 

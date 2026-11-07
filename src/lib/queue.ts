@@ -8,6 +8,25 @@ export const queueStatuses = {
 
 export type QueueStatus = keyof typeof queueStatuses;
 
+export type OrderLifecycleStatus =
+  "queued" | "preparing" | "ready" | "collected";
+
+export type TargetOrderStatus = "preparing" | "ready" | "collected";
+
+const nextStatusMap: Record<OrderLifecycleStatus, TargetOrderStatus | null> = {
+  queued: "preparing",
+  preparing: "ready",
+  ready: "collected",
+  collected: null,
+};
+
+const actionLabelMap: Record<OrderLifecycleStatus, string | null> = {
+  queued: "Mark preparing",
+  preparing: "Mark ready",
+  ready: "Mark collected",
+  collected: null,
+};
+
 export type QueueItem = {
   id: string;
   menu_item_name: string;
@@ -26,8 +45,108 @@ export type QueueOrder = {
   items: QueueItem[];
 };
 
-export function queueStatusLabel(status: QueueStatus): string {
+export type StatusUpdateInput = {
+  orderId: string;
+  expectedVersion: number;
+  status: TargetOrderStatus;
+};
+
+export type PendingStatusUpdate = {
+  orderId: string;
+  orderNumber: number;
+  customerFirstName: string;
+  fromStatus: OrderLifecycleStatus;
+  status: TargetOrderStatus;
+  expectedVersion: number;
+  conflict?: string;
+};
+
+export function queueStatusLabel(status: OrderLifecycleStatus): string {
+  if (status === "collected") return "Collected";
   return queueStatuses[status];
+}
+
+export function nextOrderStatus(
+  status: OrderLifecycleStatus,
+): TargetOrderStatus | null {
+  return nextStatusMap[status] ?? null;
+}
+
+export function statusActionLabel(status: OrderLifecycleStatus): string | null {
+  return actionLabelMap[status] ?? null;
+}
+
+export function isValidStatusTransition(
+  from: OrderLifecycleStatus,
+  to: string,
+): to is TargetOrderStatus {
+  return nextOrderStatus(from) === to;
+}
+
+export function validStatusUpdate(value: unknown): value is StatusUpdateInput {
+  if (!value || typeof value !== "object") return false;
+  const input = value as StatusUpdateInput;
+  return (
+    typeof input.orderId === "string" &&
+    UUID.test(input.orderId) &&
+    Number.isSafeInteger(input.expectedVersion) &&
+    input.expectedVersion > 0 &&
+    (input.status === "preparing" ||
+      input.status === "ready" ||
+      input.status === "collected")
+  );
+}
+
+export function isPendingStatusUpdate(
+  value: unknown,
+): value is PendingStatusUpdate {
+  if (!value || typeof value !== "object") return false;
+  const item = value as PendingStatusUpdate;
+  return (
+    typeof item.orderId === "string" &&
+    UUID.test(item.orderId) &&
+    Number.isSafeInteger(item.orderNumber) &&
+    item.orderNumber > 0 &&
+    typeof item.customerFirstName === "string" &&
+    item.customerFirstName.trim().length > 0 &&
+    (item.fromStatus === "queued" ||
+      item.fromStatus === "preparing" ||
+      item.fromStatus === "ready") &&
+    isValidStatusTransition(item.fromStatus, item.status) &&
+    Number.isSafeInteger(item.expectedVersion) &&
+    item.expectedVersion > 0 &&
+    (item.conflict === undefined || typeof item.conflict === "string")
+  );
+}
+
+export function applyPendingUpdates(
+  orders: readonly QueueOrder[],
+  pending: readonly PendingStatusUpdate[],
+): QueueOrder[] {
+  const pendingByOrder = new Map<string, PendingStatusUpdate>();
+  for (const update of pending) {
+    if (!update.conflict) {
+      pendingByOrder.set(update.orderId, update);
+    }
+  }
+  const projected: QueueOrder[] = [];
+  for (const order of orders) {
+    const update = pendingByOrder.get(order.id);
+    if (!update) {
+      projected.push(order);
+      continue;
+    }
+    if (update.status === "preparing" || update.status === "ready") {
+      projected.push({
+        ...order,
+        status: update.status,
+        version: update.expectedVersion + 1,
+      });
+    }
+    // Orders locally advanced to 'collected' leave the active queue
+    // while their pending update remains stored until synchronized.
+  }
+  return sortQueueOrders(projected);
 }
 
 export function formatDrinkName(name: string): string {

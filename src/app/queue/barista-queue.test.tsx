@@ -4,9 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BaristaQueueView,
   readCachedQueue,
+  readPendingUpdates,
   writeCachedQueue,
+  writePendingUpdates,
 } from "./barista-queue";
-import type { QueueOrder } from "@/lib/queue";
+import type { PendingStatusUpdate, QueueOrder } from "@/lib/queue";
 
 const sampleOrders: QueueOrder[] = [
   {
@@ -73,7 +75,7 @@ afterEach(() => {
 });
 
 describe("BaristaQueueView", () => {
-  it("renders order number, customer name, drink details, and Queued/Preparing/Ready status in sequence", () => {
+  it("renders order details, statuses, and one-tap action buttons in sequence", () => {
     const html = renderToStaticMarkup(
       createElement(BaristaQueueView, {
         orders: sampleOrders,
@@ -85,6 +87,7 @@ describe("BaristaQueueView", () => {
     expect(html).toContain("14");
     expect(html).toContain("Mei");
     expect(html).toContain("Queued");
+    expect(html).toContain("Mark preparing");
     expect(html).toContain("2×");
     expect(html).toContain("Latte · Iced · Oat");
     expect(html).toContain("1×");
@@ -93,16 +96,106 @@ describe("BaristaQueueView", () => {
     expect(html).toContain("15");
     expect(html).toContain("Arjun");
     expect(html).toContain("Preparing");
+    expect(html).toContain("Mark ready");
     expect(html).toContain("Flat white · Hot");
 
     expect(html).toContain("16");
     expect(html).toContain("Siti");
     expect(html).toContain("Ready");
+    expect(html).toContain("Mark collected");
     expect(html).toContain("border-signal");
     expect(html).toContain("Americano · Iced");
 
     expect(html.indexOf("Mei")).toBeLessThan(html.indexOf("Arjun"));
     expect(html.indexOf("Arjun")).toBeLessThan(html.indexOf("Siti"));
+  });
+
+  it("disables the action button and shows Updating… while an update is processing", () => {
+    const html = renderToStaticMarkup(
+      createElement(BaristaQueueView, {
+        orders: [sampleOrders[0]],
+        updatingIds: [sampleOrders[0].id],
+        connected: true,
+        error: "",
+        onRetry() {},
+      }),
+    );
+    expect(html).toContain("Updating…");
+    expect(html).toContain("disabled");
+  });
+
+  it("displays offline updates as Pending sync, keeps Ready orders visible, and removes Collected orders from the active queue", () => {
+    const pending: PendingStatusUpdate[] = [
+      {
+        orderId: sampleOrders[0].id,
+        orderNumber: 14,
+        customerFirstName: "Mei",
+        fromStatus: "queued",
+        status: "preparing",
+        expectedVersion: 1,
+      },
+      {
+        orderId: sampleOrders[1].id,
+        orderNumber: 15,
+        customerFirstName: "Arjun",
+        fromStatus: "preparing",
+        status: "ready",
+        expectedVersion: 2,
+      },
+      {
+        orderId: sampleOrders[2].id,
+        orderNumber: 16,
+        customerFirstName: "Siti",
+        fromStatus: "ready",
+        status: "collected",
+        expectedVersion: 3,
+      },
+    ];
+    const html = renderToStaticMarkup(
+      createElement(BaristaQueueView, {
+        orders: sampleOrders,
+        pendingUpdates: pending,
+        connected: false,
+        error: "",
+        onRetry() {},
+      }),
+    );
+    expect(html).toContain("Preparing · Pending sync");
+    expect(html).toContain("Ready · Pending sync");
+    expect(html).toContain("Mark collected");
+    expect(html).toContain("Offline · 3 updates pending sync");
+    expect(html).toContain("Mei");
+    expect(html).toContain("Arjun");
+    expect(html).not.toContain("Siti");
+  });
+
+  it("flags conflicting offline updates for staff review without overwriting the server status", () => {
+    const pending: PendingStatusUpdate[] = [
+      {
+        orderId: sampleOrders[0].id,
+        orderNumber: 14,
+        customerFirstName: "Mei",
+        fromStatus: "queued",
+        status: "preparing",
+        expectedVersion: 1,
+        conflict:
+          "This order was updated by another barista. Review the latest status before trying again.",
+      },
+    ];
+    const html = renderToStaticMarkup(
+      createElement(BaristaQueueView, {
+        orders: [sampleOrders[0]],
+        pendingUpdates: pending,
+        connected: true,
+        error: "",
+        onRetry() {},
+        onDismissConflict() {},
+      }),
+    );
+    expect(html).toContain("Conflict on order #14 (Mei)");
+    expect(html).toContain("Dismiss conflict");
+    expect(html).toContain("Queued");
+    expect(html).not.toContain("Pending sync");
   });
 
   it("keeps previously loaded orders visible with an offline notice when disconnected", () => {
@@ -135,8 +228,8 @@ describe("BaristaQueueView", () => {
   });
 });
 
-describe("sessionStorage offline cache", () => {
-  it("persists and restores per-staff queue orders for offline viewing", () => {
+describe("sessionStorage offline cache and pending updates", () => {
+  it("persists and restores per-staff queue orders and pending status updates", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("sessionStorage", {
       getItem: (key: string) => store.get(key) ?? null,
@@ -147,5 +240,19 @@ describe("sessionStorage offline cache", () => {
     writeCachedQueue("staff-1", sampleOrders);
     expect(readCachedQueue("staff-1")).toEqual(sampleOrders);
     expect(readCachedQueue("staff-2")).toBeNull();
+
+    const pending: PendingStatusUpdate[] = [
+      {
+        orderId: sampleOrders[0].id,
+        orderNumber: 14,
+        customerFirstName: "Mei",
+        fromStatus: "queued",
+        status: "preparing",
+        expectedVersion: 1,
+      },
+    ];
+    writePendingUpdates("staff-1", pending);
+    expect(readPendingUpdates("staff-1")).toEqual(pending);
+    expect(readPendingUpdates("staff-2")).toEqual([]);
   });
 });

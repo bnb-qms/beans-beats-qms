@@ -17,6 +17,7 @@ import {
 } from "@/lib/order";
 import { formatPrice } from "@/lib/format-price";
 import type { Staff } from "@/lib/staff-server";
+import { offlineStore, type PendingOrder } from "@/lib/offline-store";
 
 type Attempt = { draft: Draft; totalCents: number };
 type Saved = { draft: Draft; attempt: Attempt | null; receipt: Receipt | null };
@@ -31,7 +32,8 @@ function emptyDraft(): Draft {
 }
 
 export function OrderEntry({ staff }: { staff: Staff }) {
-  const { menu, connected, error: menuError, refresh } = useMenu();
+  const { menu, connected, error: menuError, refresh } = useMenu(staff);
+  const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   const [saved, setSaved] = useState<Saved | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -39,10 +41,19 @@ export function OrderEntry({ staff }: { staff: Staff }) {
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
+    const load = () =>
+      void offlineStore.pendingOrders
+        .where("staffId")
+        .equals(staff.id)
+        .toArray()
+        .then(setPendingOrders);
+    load();
+    window.addEventListener("offline-orders-changed", load);
     return () => {
       active.current = false;
+      window.removeEventListener("offline-orders-changed", load);
     };
-  }, []);
+  }, [staff.id]);
   const lastTotal = useRef<{ requestId: string; total: number } | null>(null);
   const storageKey = `bb-counter-draft:${staff.id}`;
   useEffect(() => {
@@ -128,6 +139,30 @@ export function OrderEntry({ staff }: { staff: Staff }) {
     setMessage("");
     let attempt = saved!.attempt;
     try {
+      if (!connected || !navigator.onLine) {
+        if (
+          !validateDraft(draft!) ||
+          !menu ||
+          draft!.lines.some((line) => unavailable(line, menu))
+        )
+          throw new Error("Check the order details before saving it offline.");
+        const pendingAttempt = attempt ?? { draft: draft!, totalCents: total };
+        const pending = {
+          requestId: pendingAttempt.draft.requestId,
+          staffId: staff.id,
+          attempt: pendingAttempt,
+        };
+        await offlineStore.pendingOrders.put(pending);
+        setPendingOrders((previous) => [
+          ...previous.filter((p) => p.requestId !== pending.requestId),
+          pending,
+        ]);
+        persist({ draft: emptyDraft(), attempt: null, receipt: null });
+        setMessage(
+          "Order saved on this device. It will reach the barista queue after reconnection. No pickup number is available yet.",
+        );
+        return;
+      }
       if (!attempt) {
         const latest = await refresh();
         if (!active.current) return;
@@ -172,6 +207,27 @@ export function OrderEntry({ staff }: { staff: Staff }) {
       }
       persist({ draft: emptyDraft(), attempt: null, receipt: data as Receipt });
     } catch (e) {
+      if (e instanceof TypeError && attempt) {
+        const pending = {
+          requestId: attempt.draft.requestId,
+          staffId: staff.id,
+          attempt,
+        };
+        try {
+          await offlineStore.pendingOrders.put(pending);
+          setPendingOrders((previous) => [
+            ...previous.filter((p) => p.requestId !== pending.requestId),
+            pending,
+          ]);
+          persist({ draft: emptyDraft(), attempt: null, receipt: null });
+          setMessage(
+            "Connection lost during submission. This order will retry automatically with the same request ID. Do not take payment again.",
+          );
+          return;
+        } catch {
+          // Keep the original attempt locked for manual retry if storage fails.
+        }
+      }
       setMessage(
         e instanceof Error
           ? e.message
@@ -276,6 +332,13 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           {menuError}
         </p>
       )}
+      {pendingOrders.length > 0 && (
+        <p role="status" className="mb-6 border-l-4 border-signal bg-panel p-4">
+          {pendingOrders.length} order{pendingOrders.length === 1 ? "" : "s"}{" "}
+          pending submission.{" "}
+          {pendingOrders.find((order) => order.error)?.error}
+        </p>
+      )}
       <div className="grid items-start gap-8 lg:grid-cols-[1fr_24rem]">
         <section aria-label="Drink menu">
           <h2 className="section-title mb-4">Choose drinks</h2>
@@ -308,7 +371,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                   </div>
                   <Button
                     className="mt-5"
-                    disabled={locked || !drink.is_available || !connected}
+                    disabled={locked || !drink.is_available}
                     onClick={() =>
                       change({
                         ...draft,
@@ -532,7 +595,6 @@ export function OrderEntry({ staff }: { staff: Staff }) {
             block
             disabled={
               busy ||
-              !connected ||
               !menu ||
               (!saved.attempt &&
                 (!validateDraft(draft) ||

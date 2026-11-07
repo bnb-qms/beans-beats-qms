@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Menu } from "@/lib/order";
 import { requestJson } from "./staff-workspace";
+import { offlineStore, updateSnapshot } from "@/lib/offline-store";
+import type { Staff } from "@/lib/staff-server";
 
-export function useMenu() {
+export function useMenu(staff?: Staff) {
   const [menu, setMenu] = useState<Menu | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState("");
@@ -18,6 +20,7 @@ export function useMenu() {
           setMenu(data);
           setConnected(true);
           setError("");
+          if (staff) void updateSnapshot(staff, { menu: data });
         }
         return data;
       })
@@ -36,9 +39,13 @@ export function useMenu() {
         pending.current = null;
       });
     return pending.current;
-  }, []);
+  }, [staff]);
   useEffect(() => {
     active.current = true;
+    if (staff)
+      void offlineStore.snapshots.get(staff.id).then((snapshot) => {
+        if (active.current && snapshot?.menu) setMenu(snapshot.menu);
+      });
     const load = () => {
       if (document.visibilityState === "visible")
         void refresh().catch(() => {});
@@ -61,6 +68,6 @@ export function useMenu() {
       window.removeEventListener("offline", offline);
       document.removeEventListener("visibilitychange", load);
     };
-  }, [refresh]);
+  }, [refresh, staff]);
   return { menu, connected, error, refresh };
 }

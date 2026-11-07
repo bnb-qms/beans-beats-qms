@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Button } from "./button";
 import type { Staff } from "@/lib/staff-server";
+import { cachedStaff, offlineStore, rememberStaff } from "@/lib/offline-store";
 
 export async function requestJson<T>(
   url: string,
@@ -52,10 +53,20 @@ export function StaffWorkspace({
       if (current === generation.current) {
         setStaff(staff);
         setError("");
+        if (staff) await rememberStaff(staff);
       }
     } catch {
-      if (current === generation.current)
-        setError("Cannot check your session. Connect and try signing in.");
+      if (current === generation.current) {
+        const cached = await cachedStaff().catch(() => null);
+        if (current === generation.current) {
+          setStaff(cached);
+          setError(
+            cached
+              ? "Offline · using previously verified staff access."
+              : "Cannot check your session. Connect and try signing in.",
+          );
+        }
+      }
     } finally {
       if (current === generation.current) setLoading(false);
     }
@@ -120,6 +131,7 @@ export function StaffWorkspace({
       );
       if (current === generation.current) {
         setStaff(staff);
+        await rememberStaff(staff);
         channel.current?.postMessage("changed");
       }
     } catch (e) {
@@ -143,6 +155,7 @@ export function StaffWorkspace({
       ++generation.current;
       setStaff(null);
       setError("");
+      await offlineStore.snapshots.toCollection().modify({ verifiedUntil: 0 });
       channel.current?.postMessage("changed");
     } catch {
       setError("Could not sign out. Reconnect and try again.");

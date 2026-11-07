@@ -11,7 +11,7 @@ Order and pickup system for the Beans&Beats booth at Christmas Together 2026 (Ha
 
 ## Test logins
 
-Shared staff accounts for testing the staff screens (`/order`, `/menu`, and later `/queue` and `/report`) on the live site and PR previews:
+Shared staff accounts for judges and testing staff screens on the [demo site](https://beans-beats-qms.vercel.app) and PR previews. Open a staff screen, enter either account below, and use **Sign out** before changing roles:
 
 | Role    | Username          | Password                 | Can do                                                     |
 | ------- | ----------------- | ------------------------ | ---------------------------------------------------------- |
@@ -19,6 +19,58 @@ Shared staff accounts for testing the staff screens (`/order`, `/menu`, and late
 | Barista | `preview-barista` | `local-preview-password` | Take orders, update the queue, mark items sold out         |
 
 These are public test accounts. Change both passwords before the event (26 Nov), and never use them for real staff.
+
+Both roles can open `/order`, `/queue` and `/menu`. Baristas can change
+availability only; prices and deactivation require admin. `/report` and its CSV
+export require admin, including direct API requests. The queue currently shows
+a signed-in placeholder until F4–F6 are implemented. `/board` and guest tracking
+links remain public.
+
+### Staff sessions (F17)
+
+The agreed implementation uses pre-provisioned usernames and bcrypt passwords,
+with a signed, HttpOnly 12-hour cookie; it supersedes the original F17 proposal
+for Supabase Auth email/password. There is no public registration. The legacy
+`counter` role remains supported as required by the existing schema. Staff
+identity, active status and role are checked on the server for every protected
+request. Removing or disabling a staff record denies its next request.
+
+Signing out hides protected screens and notifies other open staff tabs. Returning
+to a hidden tab, using Back, or reconnecting hides the workspace until the server
+rechecks access. A rejected session returns to sign-in. Order drafts and uncertain
+submissions remain in per-account browser session storage; signing back in as the
+same account in that tab restores them. A different account never loads that
+account's saved draft. Closing the tab or clearing browser storage can remove it.
+Sign-in and confirmed sign-out require a working connection; a failed sign-out
+shows an error and must be retried before handing over the device.
+
+F16's persistent offline queue, cached access and conflict recovery are not built
+yet. No new offline session is granted. Reconnection checks access before
+remounting operational screens; submissions stay online-only. F19 owns event-day
+reset. These dependencies remain outstanding acceptance checks for the full F17
+offline/event-day workflow.
+
+### Demo data and reset
+
+Use representative sample orders only with these public accounts. Before storing
+live event data, move the demonstration to a separate Supabase project and point
+its deployment/PR-preview environment at that demo project. Provision demo staff
+through trusted SQL as described below; never copy live staff credentials or
+customer records into the demo. The current shared team database is not proof of
+demo/live isolation.
+
+For a disposable **local** demo, follow Local test database setup below, then run
+`npx supabase db reset --local` to reload migrations and representative mock data.
+This deletes local demo edits and orders and restores the documented mock logins.
+Never run it against live data. There is no hosted reset screen yet: ask the booth
+lead to restore sample data in the isolated demo database. Do not reset the shared
+hosted database as part of testing staff logins.
+
+Login/session regression checks are in `src/app/api/staff/session/route.test.ts`
+and `src/components/staff-workspace.test.tsx`. Run
+`supabase/tests/staff_logins.sql` only against a disposable migrated database;
+it checks credential verification, disabled accounts, throttling and permissions
+and rolls back its fixtures.
 
 ## Stack
 

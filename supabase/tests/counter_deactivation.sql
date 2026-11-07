@@ -11,6 +11,7 @@ do $$
 declare
   admin_id uuid := gen_random_uuid();
   barista_id uuid := gen_random_uuid();
+  counter_id uuid := gen_random_uuid();
   drink_id uuid := gen_random_uuid();
   order_id uuid := gen_random_uuid();
   result jsonb;
@@ -40,6 +41,12 @@ begin
   perform pg_temp.assert_true(public.counter_receipt(order_id) = receipt, 'reactivation retains historical receipt');
   result := public.counter_edit_menu(admin_id,'drink',drink_id,4,'{"is_available":true}');
   perform pg_temp.assert_true((result->>'is_active')::boolean and (result->>'is_available')::boolean, 'restocked reactivated drink is orderable');
-
+  result := public.counter_edit_menu(admin_id,'drink',drink_id,5,'{"is_available":false}');
+  perform pg_temp.assert_true(not (result->>'is_available')::boolean, 'sold out again after reactivation');
+  perform pg_temp.expect_error(format('select public.counter_edit_menu(%L,%L,%L,2,%L)',barista_id,'drink',drink_id,'{"is_available":true}'),'BB_CONFLICT');
+  insert into public.staff(id,username,password_hash,role) values(counter_id,counter_id::text,'not-a-login-hash','counter');
+  perform pg_temp.expect_error(format('select public.counter_edit_menu(%L,%L,%L,6,%L)',counter_id,'drink',drink_id,'{"is_active":true}'),'BB_FORBIDDEN');
+  update public.staff set is_active = false where id = admin_id;
+  perform pg_temp.expect_error(format('select public.counter_edit_menu(%L,%L,%L,6,%L)',admin_id,'drink',drink_id,'{"is_active":true}'),'BB_FORBIDDEN');
 end $$;
 rollback;

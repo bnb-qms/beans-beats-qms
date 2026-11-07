@@ -36,6 +36,13 @@ export function OrderEntry({ staff }: { staff: Staff }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const sending = useRef(false);
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const lastTotal = useRef<{ requestId: string; total: number } | null>(null);
   const storageKey = `bb-counter-draft:${staff.id}`;
   useEffect(() => {
@@ -123,6 +130,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
     try {
       if (!attempt) {
         const latest = await refresh();
+        if (!active.current) return;
         const problem = draft!.lines
           .map((line) => unavailable(line, latest))
           .find(Boolean);

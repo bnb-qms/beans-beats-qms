@@ -1,11 +1,19 @@
-// Module 2: Barista queue. Placeholder until the module owner builds it.
+"use client";
+
+import { StaffWorkspace } from "@/components/staff-workspace";
+
+// Queue operations remain with F4–F6.
 export default function QueuePage() {
   return (
-    <main className="p-8">
-      <h1 className="text-2xl font-semibold">Barista queue</h1>
-      <p className="mt-2 text-zinc-600">
-        Baristas see orders oldest first and update status with one tap.
-      </p>
-    </main>
+    <StaffWorkspace>
+      {() => (
+        <section className="py-8">
+          <h1 className="headline">Barista queue</h1>
+          <p className="mt-4 text-muted">
+            Queue operations are not available yet.
+          </p>
+        </section>
+      )}
+    </StaffWorkspace>
   );
 }

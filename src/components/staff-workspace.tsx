@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type FormEvent,
+} from "react";
 import { Button } from "./button";
 import type { Staff } from "@/lib/staff-server";
 
@@ -33,62 +39,115 @@ export function StaffWorkspace({
   const [staff, setStaff] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const generation = useRef(0);
+  const channel = useRef<BroadcastChannel | null>(null);
   async function load() {
+    const current = ++generation.current;
+    setStaff(null);
+    setLoading(true);
     try {
-      setStaff(
-        (await requestJson<{ staff: Staff | null }>("/api/staff/session"))
-          .staff,
+      const { staff } = await requestJson<{ staff: Staff | null }>(
+        "/api/staff/session",
       );
+      if (current === generation.current) {
+        setStaff(staff);
+        setError("");
+      }
     } catch {
-      setError("Cannot check your session. Connect and try signing in.");
+      if (current === generation.current)
+        setError("Cannot check your session. Connect and try signing in.");
     } finally {
-      setLoading(false);
+      if (current === generation.current) setLoading(false);
     }
   }
   useEffect(() => {
     const timer = setTimeout(() => void load(), 0);
     const ended = () => {
+      ++generation.current;
       setStaff(null);
+      setLoading(false);
       setError("Your session ended. Sign in again to recover your draft.");
     };
     const restored = () => void load();
+    const hidden = () => {
+      ++generation.current;
+      setStaff(null);
+      setLoading(true);
+    };
+    const visibility = () => {
+      if (document.visibilityState === "visible") restored();
+      else hidden();
+    };
+    const updates =
+      typeof BroadcastChannel === "undefined"
+        ? null
+        : new BroadcastChannel("bb-staff-session");
+    channel.current = updates;
+    if (updates) updates.onmessage = restored;
     window.addEventListener("staff-session-ended", ended);
     window.addEventListener("pageshow", restored);
+    window.addEventListener("pagehide", hidden);
+    window.addEventListener("online", restored);
+    document.addEventListener("visibilitychange", visibility);
     return () => {
+      generation.current = generation.current + 1;
       clearTimeout(timer);
+      updates?.close();
+      channel.current = null;
       window.removeEventListener("staff-session-ended", ended);
       window.removeEventListener("pageshow", restored);
+      window.removeEventListener("pagehide", hidden);
+      window.removeEventListener("online", restored);
+      document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setLoading(true);
+    const current = ++generation.current;
     const form = new FormData(event.currentTarget);
     try {
-      setStaff(
-        (
-          await requestJson<{ staff: Staff }>("/api/staff/session", {
-            method: "POST",
-            body: JSON.stringify({
-              username: form.get("username"),
-              password: form.get("password"),
-            }),
-          })
-        ).staff,
+      const { staff } = await requestJson<{ staff: Staff }>(
+        "/api/staff/session",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            username: form.get("username"),
+            password: form.get("password"),
+          }),
+        },
       );
+      if (current === generation.current) {
+        setStaff(staff);
+        channel.current?.postMessage("changed");
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed. Try again.");
+      if (current === generation.current)
+        setError(
+          e instanceof TypeError
+            ? "Online sign-in is unavailable. Connect and try again."
+            : e instanceof Error
+              ? e.message
+              : "Sign-in failed. Try again.",
+        );
     } finally {
-      setLoading(false);
+      if (current === generation.current) setLoading(false);
     }
   }
   async function signOut() {
+    ++generation.current;
+    setLoading(true);
     try {
       await requestJson("/api/staff/session", { method: "DELETE" });
+      ++generation.current;
       setStaff(null);
+      setError("");
+      channel.current?.postMessage("changed");
     } catch {
       setError("Could not sign out. Reconnect and try again.");
+    } finally {
+      setLoading(false);
     }
   }
   return (
@@ -97,7 +156,7 @@ export function StaffWorkspace({
         <Link href="/" className="text-xl font-bold tracking-tight">
           BEANS&amp;BEATS / STAFF
         </Link>
-        {staff && (
+        {staff && !loading && (
           <nav
             aria-label="Staff workspace"
             className="flex flex-wrap items-center gap-4"
@@ -107,6 +166,12 @@ export function StaffWorkspace({
               href="/order"
             >
               Take orders
+            </Link>
+            <Link
+              className="inline-flex min-h-tap items-center underline"
+              href="/queue"
+            >
+              Barista queue
             </Link>
             <Link
               className="inline-flex min-h-tap items-center underline"
@@ -139,11 +204,15 @@ export function StaffWorkspace({
           {error}
         </p>
       )}
-      {staff ? (
-        <section key={staff.id}>{children(staff)}</section>
+      {loading ? (
+        <p role="status" className="py-12">
+          Checking staff access…
+        </p>
+      ) : staff ? (
+        <section key={`${staff.id}:${staff.role}`}>{children(staff)}</section>
       ) : (
         <section className="mx-auto max-w-md py-12">
-          <p className="eyebrow">Counter &amp; menu workspace</p>
+          <p className="eyebrow">Staff workspace</p>
           <h1 className="headline mt-2">Staff sign-in</h1>
           <p className="my-6 text-muted">
             Use the staff account provided by your booth lead.

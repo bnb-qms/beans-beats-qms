@@ -13,19 +13,19 @@ When online, the system sends the update to the server. When offline, it stores 
 
 ## 2. Functional Requirements
 
-| ID | Requirement |
-| --- | --- |
-| FR1 | The barista queue displays the current status of each active order. |
-| FR2 | New orders start with the status **Pending**. |
-| FR3 | The only permitted transitions are **Pending → Making**, **Making → Ready**, and **Ready → Collected**. Backward transitions and skipped stages are not permitted. |
-| FR4 | Each active order offers a one-tap action for its next permitted status. |
-| FR5 | While an update is being processed, the action is disabled to prevent duplicate submissions. |
-| FR6 | When online, the system sends the update to the server and reflects the confirmed status in the queue. |
-| FR7 | If an online update fails, the system displays an error and retains the last confirmed status; staff can review and retry the update. |
-| FR8 | When offline, the system saves the update locally and reflects the new status in the queue as **pending synchronization**. |
-| FR9 | Offline updates remain stored locally until successfully synchronized according to **F16**; failed synchronization attempts do not delete them. |
+| ID   | Requirement                                                                                                                                                              |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR1  | The barista queue displays the current status of each active order.                                                                                                      |
+| FR2  | New orders start with the status **Pending**.                                                                                                                            |
+| FR3  | The only permitted transitions are **Pending → Making**, **Making → Ready**, and **Ready → Collected**. Backward transitions and skipped stages are not permitted.       |
+| FR4  | Each active order offers a one-tap action for its next permitted status.                                                                                                 |
+| FR5  | While an update is being processed, the action is disabled to prevent duplicate submissions.                                                                             |
+| FR6  | When online, the system sends the update to the server and reflects the confirmed status in the queue.                                                                   |
+| FR7  | If an online update fails, the system displays an error and retains the last confirmed status; staff can review and retry the update.                                    |
+| FR8  | When offline, the system saves the update locally and reflects the new status in the queue as **pending synchronization**.                                               |
+| FR9  | Offline updates remain stored locally until successfully synchronized according to **F16**; failed synchronization attempts do not delete them.                          |
 | FR10 | If an offline update conflicts with a change made by another barista, the system flags the conflict for staff review rather than silently overwriting the server status. |
-| FR11 | When an order reaches **Collected**, it is removed from the active queue. If this happens offline, the locally collected status remains pending synchronization. |
+| FR11 | When an order reaches **Collected**, it is removed from the active queue. If this happens offline, the locally collected status remains pending synchronization.         |
 
 ## 3. User Flow Diagram
 

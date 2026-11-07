@@ -34,8 +34,10 @@ vi.mock("@/components/use-menu", () => ({
 }));
 // Intercept the offline save so one test can fail the IndexedDB write.
 vi.mock("@/lib/offline-store", async (importOriginal) => {
-  const real = await importOriginal();
-  offlineMocks.realSaveOfflineOrder = real.saveOfflineOrder;
+  const real = await importOriginal<typeof import("@/lib/offline-store")>();
+  offlineMocks.realSaveOfflineOrder = real.saveOfflineOrder as (
+    order: unknown,
+  ) => Promise<void>;
   return { ...real, saveOfflineOrder: offlineMocks.saveOfflineOrder };
 });
 

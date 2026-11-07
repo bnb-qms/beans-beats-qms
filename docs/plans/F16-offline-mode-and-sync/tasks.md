@@ -2,7 +2,7 @@
 
 Issue #14 · Owner Win · Branch `feat/16`
 
-Read [plan](plan.md), [story map](spec.md), [data model](data-model.md), [contract](contracts/offline-sync.md), and [quickstart](quickstart.md). Each checklist task is an implementation action; only the planning docs have been written. F4/F5 must land before US2. Tests are required by `docs/README.md` and `docs/building.md`. A `[P]` marker means the task may run in parallel with other tasks that edit different files after its prerequisites are complete.
+Read [plan](plan.md), [story map](spec.md), [data model](data-model.md), [contract](contracts/offline-sync.md), and [quickstart](quickstart.md). This checklist is the original plan, not a live completion record; the branch now contains the F16 implementation. Tests are required by `docs/README.md` and `docs/building.md`. A `[P]` marker means the task may run in parallel with other tasks that edit different files after its prerequisites are complete.
 
 ## Phase 1: Setup
 

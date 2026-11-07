@@ -2,7 +2,7 @@
 
 ## Summary
 
-Issue #14, owner Win, planning branch `feat/16`. Add a limited offline staff workflow: cached queue and menu, persisted status actions and new orders, automatic safe retry, visible conflicts/failures, and cached screens. Keep the public board frozen while disconnected. Owner clarified on 7 Nov that new orders may be saved offline; update any old “online only” copy during implementation.
+Issue #14, owner Win, branch `feat/16`. This is the original implementation plan; the branch now also contains the F16 code. Add a limited offline staff workflow: cached queue and menu, persisted status actions and new orders, automatic safe retry, visible conflicts/failures, and cached screens. Keep the public board frozen while disconnected. Owner clarified on 7 Nov that new orders may be saved offline.
 
 ## Workflow adaptation
 
@@ -10,7 +10,7 @@ This repository has no `.specify/`, constitution, templates or extension hooks. 
 
 ## Technical context
 
-TypeScript, Next.js 16.4.3 App Router, React 19.3, Supabase/Postgres, Vitest. Add Dexie because F16 explicitly requires it; no other dependency unless installed platform support proves insufficient. IndexedDB and service worker code is client-only. Current session is a signed 12-hour HttpOnly cookie, checked online with `requireStaff()`. `counter_submit_order` already accepts a stable request ID and deduplicates retries. F4/F5 are prerequisites and currently absent on this branch (`/queue` is a placeholder); reconcile their final interfaces before implementation.
+TypeScript, Next.js 16.4.3 App Router, React 19.3, Supabase/Postgres, Vitest. Dexie is used because F16 explicitly requires it. IndexedDB and service worker code is client-only. Current session is a signed 12-hour HttpOnly cookie, checked online with `requireStaff()`. `counter_submit_order` already accepts a stable request ID and deduplicates retries. F4/F5 are now merged and provide `/api/queue/orders` plus version-checked status updates.
 
 ## Scope and affected paths
 

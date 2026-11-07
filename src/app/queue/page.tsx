@@ -5,8 +5,6 @@ import { BaristaQueue } from "./barista-queue";
 
 export default function QueuePage() {
   return (
-    <StaffWorkspace>
-      {(staff) => <BaristaQueue staff={staff} />}
-    </StaffWorkspace>
+    <StaffWorkspace>{(staff) => <BaristaQueue staff={staff} />}</StaffWorkspace>
   );
 }

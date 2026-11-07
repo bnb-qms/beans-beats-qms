@@ -117,4 +117,64 @@ describe("counter orders", () => {
       unavailable({ ...draft.lines[0], menu_item_id: espresso }, menu),
     ).toContain("Milk");
   });
+  it("accepts the boundary quantity and line count, and rejects beyond them", () => {
+    for (const quantity of [1, 100])
+      expect(
+        validateDraft({
+          ...draft,
+          lines: [{ ...draft.lines[0], quantity }],
+        }),
+      ).toBe(true);
+    const line = { id: "l", menu_item_id: latte, quantity: 1, add_on_ids: [] };
+    expect(
+      validateDraft({
+        ...draft,
+        lines: Array.from({ length: 100 }, (_, i) => ({
+          ...line,
+          id: `l${i}`,
+        })),
+      }),
+    ).toBe(true);
+    expect(
+      validateDraft({
+        ...draft,
+        lines: [
+          ...Array.from({ length: 100 }, (_, i) => ({ ...line, id: `l${i}` })),
+          { ...line, id: "l100" },
+        ],
+      }),
+    ).toBe(false);
+  });
+  it("allows the two permitted add-ons and rejects a third or unknown option", () => {
+    expect(
+      validateDraft({
+        ...draft,
+        lines: [{ ...draft.lines[0], add_on_ids: [iced, oat] }],
+      }),
+    ).toBe(true);
+    const syrup = "00000000-0000-4000-8000-000000000005";
+    for (const add_on_ids of [[iced, oat, syrup], ["not-a-uuid"]] as string[][])
+      expect(
+        validateDraft({
+          ...draft,
+          lines: [{ ...draft.lines[0], add_on_ids }],
+        }),
+      ).toBe(false);
+  });
+  it("treats the mobile number as optional with or without consent", () => {
+    expect(validateDraft({ ...draft, mobile: "", consent: true })).toBe(true);
+    expect(validateDraft({ ...draft, mobile: "81234567" })).toBe(false);
+    expect(validateDraft({ ...draft, mobile: "81234567", consent: true })).toBe(
+      true,
+    );
+    expect(
+      unavailable(
+        {
+          ...draft.lines[0],
+          add_on_ids: ["00000000-0000-4000-8000-000000000005"],
+        },
+        menu,
+      ),
+    ).toContain("An option");
+  });
 });

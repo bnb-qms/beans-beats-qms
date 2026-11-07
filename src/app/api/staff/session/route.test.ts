@@ -170,3 +170,40 @@ it("clears the cookie on same-origin sign-out without deleting pending work", as
   expect(mocks.delete).toHaveBeenCalledWith("bb_staff");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
+
+it("issues a non-secure cookie outside production", async () => {
+  vi.stubEnv("NODE_ENV", "development");
+  mocks.rpc
+    .mockResolvedValueOnce({ data: true })
+    .mockResolvedValueOnce({ data: [staff] });
+  expect((await POST(request())).status).toBe(200);
+  const [name, token, options] = mocks.set.mock.calls[0];
+  expect(name).toBe("bb_staff");
+  expect(readSession(token, secret)).toBe(staff.id);
+  expect(options).toEqual({
+    httpOnly: true,
+    sameSite: "strict",
+    secure: false,
+    maxAge: 43200,
+    path: "/",
+  });
+});
+
+it("returns a null session when the stored role is revoked or unknown", async () => {
+  mocks.get.mockReturnValue({ value: signSession(staff.id, secret) });
+  for (const data of [{ ...staff, role: "former-barista" }, null]) {
+    mocks.maybeSingle.mockResolvedValueOnce({ data, error: null });
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ staff: null });
+  }
+});
+
+it("rejects oversized passwords before touching the database", async () => {
+  const response = await POST(
+    request({ username: "test", password: "x".repeat(201) }),
+  );
+  expect(response.status).toBe(400);
+  expect(mocks.rpc).not.toHaveBeenCalled();
+  expect(mocks.set).not.toHaveBeenCalled();
+});

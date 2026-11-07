@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ requireStaff: vi.fn(), rpc: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  requireStaff: vi.fn(),
+  checkOrigin: vi.fn(),
+  body: vi.fn(),
+  rpc: vi.fn(),
+}));
 vi.mock("@/lib/staff-server", () => {
   class HttpError extends Error {
     constructor(
@@ -21,11 +26,13 @@ vi.mock("@/lib/staff-server", () => {
         error instanceof HttpError ? error.status : 503,
       ),
     requireStaff: mocks.requireStaff,
+    checkOrigin: mocks.checkOrigin,
+    body: mocks.body,
     database: () => ({ rpc: mocks.rpc }),
   };
 });
 
-import { GET } from "./route";
+import { GET, PATCH } from "./route";
 
 const sampleOrder = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -48,6 +55,8 @@ const sampleOrder = {
 describe("GET /api/queue/orders", () => {
   beforeEach(() => {
     mocks.requireStaff.mockReset();
+    mocks.checkOrigin.mockReset();
+    mocks.body.mockReset();
     mocks.rpc.mockReset();
     mocks.requireStaff.mockResolvedValue({
       id: "barista-id",
@@ -88,5 +97,80 @@ describe("GET /api/queue/orders", () => {
       error: { message: "connection error" },
     });
     expect((await GET()).status).toBe(503);
+  });
+});
+
+describe("PATCH /api/queue/orders", () => {
+  const patchRequest = () =>
+    new Request("https://example.test/api/queue/orders", { method: "PATCH" });
+
+  beforeEach(() => {
+    mocks.requireStaff.mockReset();
+    mocks.checkOrigin.mockReset();
+    mocks.body.mockReset();
+    mocks.rpc.mockReset();
+    mocks.requireStaff.mockResolvedValue({
+      id: "barista-id",
+      username: "preview-barista",
+      role: "barista",
+    });
+    mocks.body.mockResolvedValue({
+      orderId: sampleOrder.id,
+      expectedVersion: 1,
+      status: "preparing",
+    });
+    mocks.rpc.mockResolvedValue({
+      data: {
+        id: sampleOrder.id,
+        order_number: 14,
+        event_day: "2026-11-26",
+        status: "preparing",
+        version: 2,
+      },
+      error: null,
+    });
+  });
+
+  it("advances order status using server staff identity and version check", async () => {
+    const response = await PATCH(patchRequest());
+    expect(response.status).toBe(200);
+    expect(mocks.checkOrigin).toHaveBeenCalledTimes(1);
+    expect(mocks.rpc).toHaveBeenCalledWith("queue_update_status", {
+      p_staff_id: "barista-id",
+      p_order_id: sampleOrder.id,
+      p_expected_version: 1,
+      p_status: "preparing",
+    });
+  });
+
+  it("rejects invalid status payloads before calling database", async () => {
+    mocks.body.mockResolvedValueOnce({
+      orderId: sampleOrder.id,
+      expectedVersion: 1,
+      status: "queued",
+    });
+    const response = await PATCH(patchRequest());
+    expect(response.status).toBe(400);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("maps BB_CONFLICT and BB_INVALID_TRANSITION to 409, BB_FORBIDDEN to 403", async () => {
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "BB_CONFLICT" },
+    });
+    expect((await PATCH(patchRequest())).status).toBe(409);
+
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "BB_INVALID_TRANSITION" },
+    });
+    expect((await PATCH(patchRequest())).status).toBe(409);
+
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "BB_FORBIDDEN" },
+    });
+    expect((await PATCH(patchRequest())).status).toBe(403);
   });
 });

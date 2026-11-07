@@ -15,6 +15,7 @@ import {
   type QueueOrder,
 } from "@/lib/queue";
 import type { Staff } from "@/lib/staff-server";
+import { offlineStore, updateSnapshot } from "@/lib/offline-store";
 
 const POLL_MS = 3000;
 
@@ -265,9 +266,31 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
       pendingRef.current = next;
       setPendingUpdates(next);
       writePendingUpdates(staff.id, next);
+      void updateSnapshot(staff, { pending: next }).catch(() =>
+        setError("Could not save pending updates on this device."),
+      );
     },
-    [staff.id],
+    [staff],
   );
+
+  useEffect(() => {
+    let live = true;
+    void offlineStore.snapshots
+      .get(staff.id)
+      .then((snapshot) => {
+        if (!live || !snapshot) return;
+        setOrders(snapshot.orders);
+        savePending(snapshot.pending);
+      })
+      .catch(() =>
+        setError(
+          "Offline storage is unavailable. Pending updates may not be retained.",
+        ),
+      );
+    return () => {
+      live = false;
+    };
+  }, [staff.id, savePending]);
 
   const refresh = useCallback((): Promise<QueueOrder[]> => {
     if (pendingFetch.current) return pendingFetch.current;
@@ -282,6 +305,9 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
         if (active.current) {
           setOrders(parsed);
           writeCachedQueue(staff.id, parsed);
+          void updateSnapshot(staff, { orders: parsed }).catch(() =>
+            setError("Could not cache the queue on this device."),
+          );
           setConnected(true);
           setError("");
         }
@@ -304,7 +330,7 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
         pendingFetch.current = null;
       });
     return pendingFetch.current;
-  }, [staff.id]);
+  }, [staff]);
 
   const syncPending = useCallback(async () => {
     if (syncing.current || isBrowserOffline()) return;
@@ -446,6 +472,7 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
               )
             : prev.filter((o) => o.id !== order.id);
         writeCachedQueue(staff.id, nextList);
+        void updateSnapshot(staff, { orders: nextList });
         return nextList;
       });
       void refresh().catch(() => {});

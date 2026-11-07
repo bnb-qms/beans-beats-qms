@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { OfflineSupport } from "@/components/offline-support";
 
 export const metadata: Metadata = {
   title: "Beans&Beats Queue",
@@ -15,7 +16,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full">
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <OfflineSupport />
+        {children}
+      </body>
     </html>
   );
 }

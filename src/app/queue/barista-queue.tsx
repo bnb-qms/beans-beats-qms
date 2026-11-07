@@ -239,9 +239,12 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
   const active = useRef(true);
   const pendingFetch = useRef<Promise<QueueOrder[]> | null>(null);
   const syncing = useRef(false);
-  const pendingRef = useRef<PendingStatusUpdate[]>(pendingUpdates);
-  pendingRef.current = pendingUpdates;
+  const pendingRef = useRef<PendingStatusUpdate[]>([]);
   const inFlightOrders = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    pendingRef.current = pendingUpdates;
+  }, [pendingUpdates]);
 
   const savePending = useCallback(
     (next: PendingStatusUpdate[]) => {
@@ -351,10 +354,7 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
   useEffect(() => {
     active.current = true;
     const load = () => {
-      if (
-        document.visibilityState === "visible" &&
-        navigator.onLine !== false
-      ) {
+      if (document.visibilityState === "visible") {
         void syncPending().then(() => refresh().catch(() => {}));
       }
     };
@@ -362,11 +362,7 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
       setConnected(false);
       setError("No connection. Previously loaded orders remain visible.");
     };
-    if (navigator.onLine === false) {
-      offline();
-    } else {
-      load();
-    }
+    load();
     const timer = setInterval(load, POLL_MS);
     window.addEventListener("online", load);
     window.addEventListener("offline", offline);

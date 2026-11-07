@@ -153,8 +153,6 @@ it("allows only admins to explicitly reactivate a drink", async () => {
   ).toBe(400);
 });
 
-const get = () => new Request("https://booth.test/api/counter/menu");
-
 it("returns the active menu for staff with a no-store cache header", async () => {
   const response = await GET();
   expect(response.status).toBe(200);

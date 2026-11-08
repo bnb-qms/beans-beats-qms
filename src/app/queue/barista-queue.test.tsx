@@ -258,3 +258,26 @@ describe("sessionStorage offline cache and legacy pending updates", () => {
     expect(readPendingUpdates("staff-2")).toEqual([]);
   });
 });
+
+describe("cancel order (#42)", () => {
+  const view = (connected: boolean) =>
+    renderToStaticMarkup(
+      createElement(BaristaQueueView, {
+        orders: sampleOrders,
+        connected,
+        error: "",
+        onRetry() {},
+        onCancel() {},
+      }),
+    );
+
+  it("offers Cancel order on every active order when online", () => {
+    const html = view(true);
+    expect(html.match(/>Cancel order</g)?.length).toBe(sampleOrders.length);
+    expect(html).not.toMatch(/disabled=""[^>]*>Cancel order/);
+  });
+
+  it("disables Cancel order while offline", () => {
+    expect(view(false)).toMatch(/disabled=""[^>]*>Cancel order/);
+  });
+});

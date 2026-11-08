@@ -285,6 +285,108 @@ it("treats malformed responses as transient errors without inventing a status", 
   expect(latest().order?.status).toBe("queued");
 });
 
+it("refetches immediately on manual refresh and resumes the normal poll cycle", async () => {
+  const watcher = start();
+  await tick();
+  expect(mocks.read).toHaveBeenCalledTimes(1);
+  watcher.refresh();
+  await tick(0);
+  expect(mocks.read).toHaveBeenCalledTimes(2);
+  expect(latest().order?.status).toBe("queued");
+  await tick(2999);
+  expect(mocks.read).toHaveBeenCalledTimes(2);
+  await tick(1);
+  expect(mocks.read).toHaveBeenCalledTimes(3);
+});
+
+it("never overlaps a manual refresh with the in-flight request", async () => {
+  let resolveFirst!: (value: unknown) => void;
+  mocks.read.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        resolveFirst = resolve;
+      }),
+  );
+  const watcher = start();
+  expect(mocks.read).toHaveBeenCalledTimes(1);
+  watcher.refresh();
+  await tick(0);
+  expect(mocks.read).toHaveBeenCalledTimes(1);
+  resolveFirst(response("ready"));
+  await tick(0);
+  expect(latest().order?.status).toBe("ready");
+  expect(mocks.read).toHaveBeenCalledTimes(1);
+  await tick(3000);
+  expect(mocks.read).toHaveBeenCalledTimes(2);
+});
+
+it("retries immediately on manual refresh after a failure and resets the backoff", async () => {
+  mocks.read.mockRejectedValueOnce(new Error());
+  const watcher = start();
+  await tick();
+  expect(latest()).toMatchObject({ kind: "error", reconnecting: true });
+  watcher.refresh();
+  await tick(0);
+  expect(mocks.read).toHaveBeenCalledTimes(2);
+  expect(latest()).toMatchObject({ kind: "order", reconnecting: false });
+  await tick(2999);
+  expect(mocks.read).toHaveBeenCalledTimes(2);
+  await tick(1);
+  expect(mocks.read).toHaveBeenCalledTimes(3);
+});
+
+it("ignores manual refresh for malformed tracking access", async () => {
+  browser.location.hash = "#invalid";
+  const watcher = start();
+  watcher.refresh();
+  await tick(60000);
+  expect(latest().kind).toBe("unavailable");
+  expect(mocks.read).not.toHaveBeenCalled();
+});
+
+it("ignores manual refresh after the link has expired", async () => {
+  const watcher = start();
+  await tick();
+  mocks.read.mockResolvedValueOnce({ data: [], error: null });
+  await tick(3000);
+  expect(latest().kind).toBe("unavailable");
+  watcher.refresh();
+  await tick(60000);
+  expect(latest().kind).toBe("unavailable");
+  expect(mocks.read).toHaveBeenCalledTimes(2);
+});
+
+it("aborts an in-flight request when the connection drops and ignores its late result", async () => {
+  let signal!: AbortSignal;
+  let resolveLate!: (value: unknown) => void;
+  mocks.read.mockImplementationOnce((s: AbortSignal) => {
+    signal = s;
+    return new Promise((resolve) => {
+      resolveLate = resolve;
+    });
+  });
+  start();
+  await tick();
+  expect(signal.aborted).toBe(false);
+  network.onLine = false;
+  browser.dispatchEvent(new Event("offline"));
+  await tick(0);
+  expect(signal.aborted).toBe(true);
+  expect(latest()).toMatchObject({
+    kind: "error",
+    order: null,
+    reconnecting: true,
+  });
+  resolveLate(response("ready"));
+  await tick(0);
+  expect(latest()).toMatchObject({ kind: "error", order: null });
+  network.onLine = true;
+  browser.dispatchEvent(new Event("online"));
+  await tick();
+  expect(mocks.read).toHaveBeenCalledTimes(2);
+  expect(latest()).toMatchObject({ kind: "order", reconnecting: false });
+});
+
 it("keeps the explicit sample page labelled by the UI and makes no network requests", async () => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
   start("example");

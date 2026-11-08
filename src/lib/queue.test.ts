@@ -61,6 +61,105 @@ describe("queue helpers", () => {
     expect(isValidStatusTransition("ready", "preparing")).toBe(false);
   });
 
+  it("rejects structurally invalid status update payloads", () => {
+    expect(validStatusUpdate(null)).toBe(false);
+    expect(validStatusUpdate({})).toBe(false);
+    expect(
+      validStatusUpdate({
+        orderId: "not-a-uuid",
+        expectedVersion: 1,
+        status: "preparing",
+      }),
+    ).toBe(false);
+    expect(
+      validStatusUpdate({
+        orderId: baseOrder.id,
+        expectedVersion: "1",
+        status: "preparing",
+      }),
+    ).toBe(false);
+    expect(
+      validStatusUpdate({
+        orderId: baseOrder.id,
+        expectedVersion: 1.5,
+        status: "preparing",
+      }),
+    ).toBe(false);
+    expect(
+      validStatusUpdate({
+        orderId: baseOrder.id,
+        expectedVersion: -1,
+        status: "preparing",
+      }),
+    ).toBe(false);
+    expect(
+      validStatusUpdate({
+        orderId: baseOrder.id,
+        expectedVersion: 1,
+        status: "cancelled",
+      }),
+    ).toBe(false);
+    expect(
+      validStatusUpdate({ orderId: baseOrder.id, expectedVersion: 1 }),
+    ).toBe(false);
+  });
+
+  it("breaks sort ties by order number, then id, and drops collected orders", () => {
+    const sameTimeLowerNumber: QueueOrder = {
+      ...baseOrder,
+      id: "00000000-0000-4000-8000-000000000050",
+      order_number: 13,
+    };
+    const sameTimeTwinNumber: QueueOrder = {
+      ...baseOrder,
+      id: "00000000-0000-4000-8000-000000000099",
+      order_number: 14,
+    };
+    const collected = {
+      ...baseOrder,
+      id: "00000000-0000-4000-8000-000000000002",
+      status: "collected",
+      version: 2,
+    } as QueueOrder;
+    const sorted = sortQueueOrders([
+      sameTimeTwinNumber,
+      collected,
+      baseOrder,
+      sameTimeLowerNumber,
+    ]);
+    expect(sorted.map((o) => o.id)).toEqual([
+      sameTimeLowerNumber.id,
+      baseOrder.id,
+      sameTimeTwinNumber.id,
+    ]);
+  });
+
+  it("keeps server state for conflicting pending updates and ignores unknown orders", () => {
+    const projected = applyPendingUpdates(
+      [baseOrder],
+      [
+        {
+          orderId: baseOrder.id,
+          orderNumber: 14,
+          customerFirstName: "Mei",
+          fromStatus: "queued",
+          status: "preparing",
+          expectedVersion: 1,
+          conflict: "Updated by another barista",
+        },
+        {
+          orderId: "00000000-0000-4000-8000-000000000009",
+          orderNumber: 99,
+          customerFirstName: "Ghost",
+          fromStatus: "queued",
+          status: "preparing",
+          expectedVersion: 1,
+        },
+      ],
+    );
+    expect(projected).toEqual([baseOrder]);
+  });
+
   it("validates status update requests and pending offline updates", () => {
     expect(
       validStatusUpdate({

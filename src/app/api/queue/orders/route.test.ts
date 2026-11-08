@@ -32,6 +32,7 @@ vi.mock("@/lib/staff-server", () => {
   };
 });
 
+import { HttpError } from "@/lib/staff-server";
 import { GET, PATCH } from "./route";
 
 const sampleOrder = {
@@ -98,6 +99,35 @@ describe("GET /api/queue/orders", () => {
     });
     expect((await GET()).status).toBe(503);
   });
+
+  it("treats a null database row without an error as malformed", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: null });
+    const response = await GET();
+    expect(response.status).toBe(503);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns an empty list when no orders are active today", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [], error: null });
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ orders: [] });
+  });
+
+  it("maps an expired session to 401 without calling the queue", async () => {
+    mocks.requireStaff.mockRejectedValueOnce(
+      new HttpError(
+        401,
+        "Your session ended. Sign in again; your draft is retained.",
+      ),
+    );
+    const response = await GET();
+    expect(response.status).toBe(401);
+    expect((await response.json()).error).toBe(
+      "Your session ended. Sign in again; your draft is retained.",
+    );
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
 });
 
 describe("PATCH /api/queue/orders", () => {
@@ -143,6 +173,19 @@ describe("PATCH /api/queue/orders", () => {
     });
   });
 
+  it("returns the updated order on success", async () => {
+    const response = await PATCH(patchRequest());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.json()).toEqual({
+      id: sampleOrder.id,
+      order_number: 14,
+      event_day: "2026-11-26",
+      status: "preparing",
+      version: 2,
+    });
+  });
+
   it("rejects invalid status payloads before calling database", async () => {
     mocks.body.mockResolvedValueOnce({
       orderId: sampleOrder.id,
@@ -151,6 +194,50 @@ describe("PATCH /api/queue/orders", () => {
     });
     const response = await PATCH(patchRequest());
     expect(response.status).toBe(400);
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed status payloads without touching the database", async () => {
+    const invalidBodies = [
+      null,
+      {},
+      { orderId: "not-a-uuid", expectedVersion: 1, status: "preparing" },
+      { orderId: sampleOrder.id, expectedVersion: "1", status: "preparing" },
+      { orderId: sampleOrder.id, expectedVersion: -1, status: "preparing" },
+      { orderId: sampleOrder.id, expectedVersion: 1.5, status: "preparing" },
+      { orderId: sampleOrder.id, expectedVersion: 1 },
+      { orderId: sampleOrder.id, status: "preparing" },
+      { orderId: sampleOrder.id, expectedVersion: 1, status: "cancelled" },
+      { orderId: sampleOrder.id, expectedVersion: 1, status: 7 },
+    ];
+    for (const value of invalidBodies) {
+      mocks.body.mockResolvedValueOnce(value);
+      const response = await PATCH(patchRequest());
+      expect(response.status).toBe(400);
+    }
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects an expired session before reading the request body", async () => {
+    mocks.requireStaff.mockRejectedValueOnce(
+      new HttpError(
+        401,
+        "Your session ended. Sign in again; your draft is retained.",
+      ),
+    );
+    const response = await PATCH(patchRequest());
+    expect(response.status).toBe(401);
+    expect(mocks.body).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects a cross-origin update without calling the database", async () => {
+    mocks.checkOrigin.mockImplementationOnce(() => {
+      throw new HttpError(403, "Open this app directly and try again.");
+    });
+    const response = await PATCH(patchRequest());
+    expect(response.status).toBe(403);
+    expect(mocks.body).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
@@ -172,5 +259,31 @@ describe("PATCH /api/queue/orders", () => {
       error: { message: "BB_FORBIDDEN" },
     });
     expect((await PATCH(patchRequest())).status).toBe(403);
+  });
+
+  it("maps BB_NOT_FOUND to 404 and BB_INVALID to 400", async () => {
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "BB_NOT_FOUND" },
+    });
+    const missing = await PATCH(patchRequest());
+    expect(missing.status).toBe(404);
+    expect((await missing.json()).error).toContain("not found");
+
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "BB_INVALID" },
+    });
+    expect((await PATCH(patchRequest())).status).toBe(400);
+  });
+
+  it("maps an unknown database failure to 503", async () => {
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "boom" },
+    });
+    const response = await PATCH(patchRequest());
+    expect(response.status).toBe(503);
+    expect((await response.json()).error).toContain("could not be confirmed");
   });
 });

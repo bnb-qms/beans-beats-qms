@@ -120,7 +120,7 @@ describe("queue helpers", () => {
       id: "00000000-0000-4000-8000-000000000002",
       status: "collected",
       version: 2,
-    } as QueueOrder;
+    } as unknown as QueueOrder;
     const sorted = sortQueueOrders([
       sameTimeTwinNumber,
       collected,

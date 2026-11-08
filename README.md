@@ -80,8 +80,8 @@ Both roles can open `/order`, `/queue`, and `/menu`. Baristas can change item av
   - Admin-only daily summary of total cups sold and revenue grouped by Singapore business date (`Asia/Singapore`), excluding cancelled orders.
   - One-click CSV export generating one row per order line (including cancelled orders clearly marked as excluded from totals) plus daily summary totals, with zero customer personal data for safe POS reconciliation.
 - **Offline Mode & Automatic Sync (F16):**
-  - Caches the app shell (`public/sw.js`), menu, active queue, and verified staff session metadata in IndexedDB (`Dexie`).
-  - Allows baristas to save new orders and tap status updates while offline, queuing mutations locally and replaying them idempotently (`client_request_id` and `version`) upon reconnection. Rejected submissions or conflicts are flagged as `Needs review` rather than silently dropped.
+  - Caches the app shell and pages in Cache Storage via the service worker (`public/sw.js`), while IndexedDB (`Dexie`) holds the menu, active queue, and verified staff session snapshots.
+  - Allows baristas to save new orders and tap status updates while offline, queuing mutations locally and replaying them upon reconnection: order submissions are safe to retry idempotently through `client_request_id`, while status updates are version-checked (`version`) with conflict review if state changed in the interim. Rejected submissions or version conflicts are flagged as `Needs review` rather than silently dropped.
 - **Staff Sessions & Role-Based Security (F17):**
   - Pre-provisioned usernames with salted `bcrypt` hashes in PostgreSQL and signed 12-hour `HttpOnly` cookies (`STAFF_SESSION_SECRET`).
   - Cross-tab sign-out notifications, per-account session storage for order drafts, and server-side verification on every protected route.
@@ -112,7 +112,7 @@ The application enforces a strict boundary between public browser clients, authe
    - Staff authenticate via `POST /api/staff/session`, which verifies credentials against `public.staff` (`bcrypt`) and sets a signed 12-hour `HttpOnly` cookie.
    - Every protected API route calls `checkOrigin(request)` (for mutations) and `requireStaff()` to verify the session cookie and confirm the staff record is still active in the database.
 2. **Database RPC Boundary (`supabase/migrations/`):**
-   - Direct table access is locked down. Staff route handlers connect with `SUPABASE_SERVICE_ROLE_KEY` and execute `security definer` PostgreSQL functions that explicitly take `p_staff_id` and verify active status and role permissions inside the database:
+   - Direct table access is locked down for restricted staff, order, and sales data (anonymous clients can directly read available menu items and add-ons under public `SELECT` policies). Staff route handlers connect with `SUPABASE_SERVICE_ROLE_KEY` and execute `security definer` PostgreSQL functions that explicitly take `p_staff_id` and verify active status and role permissions inside the database:
      - `counter_submit_order` — validates availability, snapshots prices, allocates the daily Singapore pickup number (`1, 2, 3...`), and stores the order idempotently via `client_request_id`.
      - `counter_edit_menu` — enforces barista vs. admin permissions for availability, price edits, deactivation, and reactivation.
      - `queue_orders` & `queue_update_status` — loads today's active queue and performs version-checked status transitions.
@@ -163,7 +163,7 @@ erDiagram
         string status
         decimal total_amount
         uuid client_request_id UK
-        string tracking_token_hash
+        string tracking_token
         int version
     }
     ORDER_ITEMS {

@@ -14,6 +14,12 @@ vi.mock("@/components/use-menu", () => ({ useMenu: mocks.useMenu }));
 vi.mock("@/components/staff-workspace", () => ({
   requestJson: mocks.requestJson,
   inputClass: "field",
+  // Same rule as the real helper: raw network (TypeError) messages are
+  // hidden behind the fallback; other errors keep their message.
+  staffMessage: (error: unknown, fallback: string) =>
+    error instanceof Error && !(error instanceof TypeError)
+      ? error.message
+      : fallback,
 }));
 import { MenuControls } from "./menu-controls";
 

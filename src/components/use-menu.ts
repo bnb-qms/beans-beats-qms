@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Menu } from "@/lib/order";
-import { requestJson } from "./staff-workspace";
+import { requestJson, staffMessage } from "./staff-workspace";
 import { offlineStore, updateSnapshot } from "@/lib/offline-store";
 import type { Staff } from "@/lib/staff-server";
 
@@ -28,9 +28,10 @@ export function useMenu(staff?: Staff) {
         if (active.current) {
           setConnected(false);
           setError(
-            e instanceof Error
-              ? e.message
-              : "Cannot refresh the menu. Reconnect and try again.",
+            staffMessage(
+              e,
+              "Cannot refresh the menu. Reconnect and try again.",
+            ),
           );
         }
         throw e;

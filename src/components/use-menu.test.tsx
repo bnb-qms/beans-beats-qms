@@ -12,6 +12,12 @@ const mocks = vi.hoisted(() => ({ requestJson: vi.fn() }));
 vi.mock("./staff-workspace", () => ({
   requestJson: mocks.requestJson,
   inputClass: "field",
+  // Same rule as the real helper: raw network (TypeError) messages are
+  // hidden behind the fallback; other errors keep their message.
+  staffMessage: (error: unknown, fallback: string) =>
+    error instanceof Error && !(error instanceof TypeError)
+      ? error.message
+      : fallback,
 }));
 
 const staff: Staff = { id: "staff-9", username: "brew", role: "barista" };
@@ -106,7 +112,10 @@ it("restores the cached snapshot when the refresh fails", async () => {
   await act(async () => root.render(<Probe staff={staff} />));
   await vi.waitFor(() => expect(text("menu")).toContain("cached espresso"));
   expect(text("connected")).toBe("offline");
-  expect(text("error")).toBe("offline");
+  // A raw browser network error is hidden behind the plain fallback message.
+  expect(text("error")).toBe(
+    "Cannot refresh the menu. Reconnect and try again.",
+  );
 });
 
 it("shows the failure message when no snapshot is cached", async () => {

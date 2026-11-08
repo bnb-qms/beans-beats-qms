@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
-import { inputClass, requestJson } from "@/components/staff-workspace";
+import {
+  inputClass,
+  requestJson,
+  staffMessage,
+} from "@/components/staff-workspace";
 import { useMenu } from "@/components/use-menu";
 import { cents, type Drink, type AddOn } from "@/lib/order";
 import { formatPrice } from "@/lib/format-price";
@@ -82,9 +86,10 @@ export function MenuControls({ staff }: { staff: Staff }) {
       );
     } catch (e) {
       setNotice(
-        e instanceof Error
-          ? e.message
-          : "Save not confirmed. Your input is retained; try again.",
+        staffMessage(
+          e,
+          "Save not confirmed. Your input is retained; try again.",
+        ),
       );
       void refresh().catch(() => {});
     } finally {

@@ -2,7 +2,7 @@
 import "fake-indexeddb/auto";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { offlineStore } from "@/lib/offline-store";
 import { requestJson, StaffWorkspace } from "./staff-workspace";
@@ -183,4 +183,17 @@ it("ends the workspace when another tab ends the session", async () => {
   });
   expect(host.textContent).toContain("Your session ended");
   expect(host.textContent).not.toContain("Protected:");
+});
+
+describe("staffMessage", () => {
+  it("hides the browser's network error behind a plain message", async () => {
+    const { staffMessage } = await import("./staff-workspace");
+    expect(
+      staffMessage(new TypeError("Failed to fetch"), "No connection."),
+    ).toBe("No connection.");
+    expect(staffMessage(new Error("Admin access is required."), "x")).toBe(
+      "Admin access is required.",
+    );
+    expect(staffMessage("odd", "Fallback")).toBe("Fallback");
+  });
 });

@@ -4,6 +4,8 @@ What the team has agreed, newest first, with where it was agreed. When a spec an
 
 ## Agreed
 
+8 Nov 2026 request: Customer first names are optional on orders. Empty or whitespace-only names are stored as blank. The public ready board shows only the pickup number for unnamed orders. This supersedes the name requirement in the 6 Nov F1 and F18 specs.
+
 F16 team agreement, 7 Nov 2026: Baristas may save new orders offline for automatic submission after reconnection. This supersedes the 6 Nov "No new orders while offline" row below. Keep the request ID on retries; server price, availability and access checks still apply, and rejected submissions require staff review rather than silent repricing or deletion.
 
 | Date   | Decision                                                                                                                                                                                                                                                                                                                                                      | Where                                                                                                                                                  |

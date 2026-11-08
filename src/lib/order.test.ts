@@ -64,10 +64,11 @@ describe("counter orders", () => {
     ).toBe(2300);
     expect(cents("8.10")).toBe(810);
   });
-  it("rejects empty names, invalid quantities, duplicate options and missing mobile consent", () => {
+  it("allows unnamed orders but rejects long names, invalid quantities, duplicate options and missing mobile consent", () => {
     expect(validateDraft(draft)).toBe(true);
-    for (const firstName of [" ", "a".repeat(21)])
-      expect(validateDraft({ ...draft, firstName })).toBe(false);
+    for (const firstName of ["", " "])
+      expect(validateDraft({ ...draft, firstName })).toBe(true);
+    expect(validateDraft({ ...draft, firstName: "a".repeat(21) })).toBe(false);
     for (const quantity of [0, -1, 1.5, 101])
       expect(
         validateDraft({ ...draft, lines: [{ ...draft.lines[0], quantity }] }),

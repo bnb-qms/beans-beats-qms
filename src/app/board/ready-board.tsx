@@ -97,9 +97,11 @@ export function ReadyBoard() {
             <p className="numeral text-8xl font-bold leading-none">
               {order.order_number}
             </p>
-            <p className="mt-3 truncate text-4xl font-bold">
-              {order.customer_first_name}
-            </p>
+            {order.customer_first_name && (
+              <p className="mt-3 truncate text-4xl font-bold">
+                {order.customer_first_name}
+              </p>
+            )}
           </li>
         ))}
       </ul>

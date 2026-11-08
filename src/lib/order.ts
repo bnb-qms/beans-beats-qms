@@ -84,7 +84,6 @@ export function validateDraft(value: unknown): value is Draft {
     typeof d.requestId === "string" &&
     UUID.test(d.requestId) &&
     typeof d.firstName === "string" &&
-    d.firstName.trim().length > 0 &&
     d.firstName.trim().length <= 20 &&
     typeof d.mobile === "string" &&
     (!d.mobile || /^[89]\d{7}$/.test(d.mobile)) &&

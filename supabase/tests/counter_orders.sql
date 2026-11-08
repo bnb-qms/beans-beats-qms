@@ -23,6 +23,7 @@ declare
   iced uuid := gen_random_uuid();
   oat uuid := gen_random_uuid();
   request_id uuid := gen_random_uuid();
+  unnamed_id uuid := gen_random_uuid();
   items jsonb;
   first_receipt jsonb;
   second_receipt jsonb;
@@ -41,6 +42,9 @@ begin
   perform pg_temp.assert_true((select count(*) = 1 from public.orders where client_request_id = request_id), 'one order per request');
   perform pg_temp.assert_true((select status = 'queued' and total_amount = 23 and customer_first_name = 'Bella' from public.orders where id = request_id), 'queued, priced, trimmed');
   perform pg_temp.assert_true((first_receipt->>'event_day')::date = (now() at time zone 'Asia/Singapore')::date, 'Singapore business date');
+  perform pg_temp.assert_true((public.counter_submit_order(staff_id, unnamed_id, ' ', null, false, items, 2300)->>'customer_first_name') = '', 'unnamed order receipt has no name');
+  perform pg_temp.assert_true((select customer_first_name = '' from public.orders where id = unnamed_id), 'unnamed order stores a blank name');
+  perform pg_temp.assert_true((public.counter_submit_order(staff_id, unnamed_id, '', null, false, items, 2300)->>'customer_first_name') = '', 'unnamed retry returns the same order');
   perform pg_temp.assert_true(jsonb_array_length(first_receipt->'items') = 2, 'receipt line snapshots');
   perform pg_temp.expect_error(format('select public.counter_submit_order(%L,%L,%L,null,false,%L,2300)', staff_id, request_id, 'Different', items), 'BB_INVALID');
   command := format('select public.counter_submit_order(%L,%L,%L,null,false,%L,2300)', staff_id, gen_random_uuid(), 'Guest', items);
@@ -64,7 +68,7 @@ begin
   perform pg_temp.expect_error(format('select public.counter_submit_order(%L,%L,%L,null,false,%L,500)', staff_id, gen_random_uuid(), 'Guest', jsonb_build_array(jsonb_build_object('menu_item_id', espresso, 'quantity', 1, 'add_on_ids', jsonb_build_array(oat)))), 'BB_INVALID');
   perform pg_temp.assert_true(not has_function_privilege('anon', 'public.counter_submit_order(uuid,uuid,text,text,boolean,jsonb,integer)', 'execute'), 'public cannot submit');
   perform pg_temp.assert_true(not has_function_privilege('authenticated', 'public.counter_receipt(uuid)', 'execute'), 'browser cannot fetch staff receipts');
-  perform pg_temp.assert_true((select count(*) = 1 from public.orders where created_by = staff_id), 'failed requests roll back');
+  perform pg_temp.assert_true((select count(*) = 2 from public.orders where created_by = staff_id), 'failed requests roll back');
   for i in 1..10 loop perform pg_temp.assert_true(public.counter_login_attempt(staff_id::text), 'initial login attempts allowed'); end loop;
   perform pg_temp.assert_true(not public.counter_login_attempt(staff_id::text), 'login attempts throttled');
 end $$;

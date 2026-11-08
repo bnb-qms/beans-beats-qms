@@ -131,8 +131,9 @@ export function BaristaQueueView({
               className="border-l-4 border-error bg-panel p-4"
             >
               <p className="font-bold">
-                Conflict on order #{conflict.orderNumber} (
-                {conflict.customerFirstName})
+                Conflict on order #{conflict.orderNumber}
+                {conflict.customerFirstName &&
+                  ` (${conflict.customerFirstName})`}
               </p>
               <p className="mt-1 text-sm">{conflict.conflict}</p>
               {onDismissConflict && (

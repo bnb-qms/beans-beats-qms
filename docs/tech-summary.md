@@ -39,8 +39,8 @@ PostgreSQL stores data in `staff`, `menu_items`, `add_ons`, `daily_order_counter
 
 ## PDPA Compliance
 
-- **Minimisation & Consent:** Only a guest's first name (max 20 characters) is required. Optional Singapore mobile numbers require explicit consent and a timestamp.
-- **Exposure Control:** Guest QR links keep random tokens in the URL hash (`#<token>`) so secrets never reach server logs or `Referer` headers. The public ready board shows only the pickup number and first name; CSV exports and daily totals contain no names or mobile numbers. Names and mobiles are visible only on signed-in staff screens.
+- **Minimisation & Consent:** A guest's first name is optional (max 20 characters). Optional Singapore mobile numbers require explicit consent and a timestamp.
+- **Exposure Control:** Guest QR links keep random tokens in the URL hash (`#<token>`) so secrets never reach server logs or `Referer` headers. The public ready board shows the pickup number and the first name if given; CSV exports and daily totals contain no names or mobile numbers. Names and mobiles are visible only on signed-in staff screens.
 - **Retention & Erasure:** Within 30 days post-event, `erase_guest_details` replaces names with `"Guest"` and clears mobile numbers and consent timestamps while preserving sales totals.
 
 ## Known Limitations

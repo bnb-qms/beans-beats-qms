@@ -28,18 +28,24 @@ export function ReadyBoard() {
 
   useEffect(() => {
     // Polling, not Realtime: the public cannot subscribe to the orders table.
+    // Each poll is tagged; a response only applies if it is still the newest,
+    // so a slow overlapping poll can never restore a collected order.
+    let latest = 0;
     async function load() {
+      const seq = ++latest;
       try {
         const { data, error } = USE_SAMPLE
           ? { data: SAMPLE_ORDERS, error: null }
           : await createClient().rpc("ready_orders");
         if (error) throw error;
+        if (seq !== latest) return;
         const sorted = [...(data as ReadyOrder[])].sort((a, b) =>
           a.ready_at.localeCompare(b.ready_at),
         );
         setOrders(sorted);
         setReconnecting(false);
       } catch {
+        if (seq !== latest) return;
         // Keep showing the last list until the connection comes back (FR9).
         setReconnecting(true);
       }

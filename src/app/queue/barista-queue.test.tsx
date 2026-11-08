@@ -1,7 +1,12 @@
-import { createElement } from "react";
+// @vitest-environment happy-dom
+import "fake-indexeddb/auto";
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as store from "@/lib/offline-store";
 import {
+  BaristaQueue,
   BaristaQueueView,
   readCachedQueue,
   readPendingUpdates,
@@ -214,6 +219,20 @@ describe("BaristaQueueView", () => {
     expect(html).toContain("Latte · Iced · Oat");
   });
 
+  it("shows an unavailable state with a retry action when the queue failed to load", () => {
+    const html = renderToStaticMarkup(
+      createElement(BaristaQueueView, {
+        orders: null,
+        connected: false,
+        error: "Cannot load the order queue. Check your connection and retry.",
+        onRetry() {},
+      }),
+    );
+    expect(html).toContain("Queue is unavailable.");
+    expect(html).toContain("Retry queue");
+    expect(html).toContain("Cannot load the order queue.");
+  });
+
   it("renders an empty message when there are no pending orders", () => {
     const html = renderToStaticMarkup(
       createElement(BaristaQueueView, {
@@ -256,5 +275,121 @@ describe("sessionStorage offline cache and legacy pending updates", () => {
     );
     expect(readPendingUpdates("staff-1")).toEqual(pending);
     expect(readPendingUpdates("staff-2")).toEqual([]);
+  });
+});
+
+describe("BaristaQueue online behaviour", () => {
+  const staff = {
+    id: "staff-1",
+    username: "barista",
+    role: "barista" as const,
+  };
+  let host: HTMLDivElement;
+  let root: Root;
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  function online(
+    handler: (url: string, init?: RequestInit) => Promise<Response>,
+  ) {
+    vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(true);
+    fetchMock = vi.fn(handler);
+    vi.stubGlobal("fetch", fetchMock);
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    host = document.createElement("div");
+    document.body.append(host);
+    root = createRoot(host);
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    host.remove();
+    sessionStorage.clear();
+    await store.offlineStore.snapshots.clear();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows a server error with retry, then loads the queue when refreshed", async () => {
+    let attempts = 0;
+    online(async () => {
+      attempts += 1;
+      if (attempts === 1)
+        return new Response(
+          JSON.stringify({
+            error:
+              "Cannot load the order queue. Check your connection and retry.",
+          }),
+          { status: 503 },
+        );
+      return new Response(JSON.stringify({ orders: [sampleOrders[0]] }), {
+        status: 200,
+      });
+    });
+    await act(async () => root.render(<BaristaQueue staff={staff} />));
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain("Queue is unavailable."),
+    );
+    expect(host.textContent).toContain(
+      "Cannot load the order queue. Check your connection and retry.",
+    );
+    const retry = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent === "Retry queue",
+    );
+    expect(retry).toBeDefined();
+    await act(async () => retry!.click());
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain("Mark preparing"),
+    );
+    expect(host.textContent).toContain("Mei");
+    expect(host.textContent).toContain("Latte · Iced · Oat");
+  });
+
+  it("advances a ready order online, removes it from the queue, and updates the offline cache", async () => {
+    let collected = false;
+    online(async (_url, init) => {
+      if (init?.method === "PATCH") {
+        collected = true;
+        return new Response(
+          JSON.stringify({
+            id: sampleOrders[2].id,
+            order_number: 16,
+            event_day: "2026-11-26",
+            status: "collected",
+            version: 4,
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({ orders: collected ? [] : [sampleOrders[2]] }),
+        { status: 200 },
+      );
+    });
+    await act(async () => root.render(<BaristaQueue staff={staff} />));
+    await vi.waitFor(() =>
+      expect(host.querySelector("button")?.disabled).toBe(false),
+    );
+    const advance = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent === "Mark collected",
+    );
+    expect(advance).toBeDefined();
+    await act(async () => advance!.click());
+    await vi.waitFor(() => expect(host.textContent).not.toContain("Siti"));
+    expect(host.textContent).toContain("No pending orders in the queue.");
+    const patchCalls = fetchMock.mock.calls.filter(
+      ([, init]) => init?.method === "PATCH",
+    );
+    expect(patchCalls).toHaveLength(1);
+    expect(JSON.parse(patchCalls[0][1].body as string)).toEqual({
+      orderId: sampleOrders[2].id,
+      expectedVersion: 3,
+      status: "collected",
+    });
+    expect(
+      JSON.parse(sessionStorage.getItem("bb-queue-orders:staff-1")!),
+    ).toEqual([]);
   });
 });

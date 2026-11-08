@@ -73,7 +73,7 @@ export function GuestStatusView({
   const status = order ? guestStatuses[order.status] : null;
   return (
     <main
-      className={`flex min-h-dvh flex-1 flex-col ${order?.status === "ready" ? "bg-signal text-ink" : "bg-paper text-ink"}`}
+      className={`flex min-h-dvh flex-1 flex-col ${order?.status === "ready" ? "bg-signal text-ink [&_.eyebrow]:text-ink" : "bg-paper text-ink"}`}
       style={{
         padding:
           "max(1.5rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left))",

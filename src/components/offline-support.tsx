@@ -30,7 +30,7 @@ export function OfflineSupport() {
   return offline ? (
     <p
       role="status"
-      className="bg-signal px-4 py-2 text-center font-bold text-ink"
+      className="border-b border-hair bg-panel px-4 py-2 text-center font-bold text-ink"
     >
       Offline · changes will sync when connected
     </p>

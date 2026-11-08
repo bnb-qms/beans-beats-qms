@@ -7,6 +7,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { offlineStore } from "@/lib/offline-store";
 import { requestJson, StaffWorkspace } from "./staff-workspace";
 
+vi.mock("next/navigation", () => ({ usePathname: () => "/queue" }));
+
 let host: HTMLDivElement;
 let root: Root;
 
@@ -197,3 +199,27 @@ describe("staffMessage", () => {
     expect(staffMessage("odd", "Fallback")).toBe("Fallback");
   });
 });
+
+it.each([admin, barista])(
+  "marks only the current staff route for $role",
+  async (staff) => {
+    vi.stubGlobal("fetch", sessionFetcher({ staff }));
+    await renderWorkspace();
+    await vi.waitFor(() =>
+      expect(
+        host.querySelector('nav a[aria-current="page"]')?.getAttribute("href"),
+      ).toBe("/queue"),
+    );
+    expect(host.querySelectorAll('nav a[aria-current="page"]')).toHaveLength(1);
+    expect(host.querySelector('a[href="/scan"]')).not.toBeNull();
+    expect(host.querySelector('a[href="/report"]') !== null).toBe(
+      staff.role === "admin",
+    );
+    expect(host.querySelector("nav button")).toBeNull();
+    expect(
+      Array.from(host.querySelectorAll("button")).some(
+        (button) => button.textContent === "Sign out",
+      ),
+    ).toBe(true);
+  },
+);

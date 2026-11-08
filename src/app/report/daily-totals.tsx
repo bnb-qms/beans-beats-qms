@@ -101,13 +101,14 @@ export function DailyTotalsReport() {
 
   return (
     <div className="max-w-2xl py-8">
-      <p className="eyebrow">Daily sales report</p>
+      <p className="eyebrow">Report / 06</p>
       <h1 className="headline mt-2">Daily totals</h1>
-      <div className="mt-8 flex flex-wrap items-end gap-4">
+      <p className="eyebrow mt-4">Singapore event day · refresh for latest</p>
+      <div className="mt-6 grid items-end gap-4 sm:grid-cols-3">
         <label className="grid gap-2 font-bold">
           Event date
           <input
-            className={inputClass}
+            className={`${inputClass} numeral min-w-0`}
             type="date"
             value={date}
             onChange={(event) => {
@@ -158,11 +159,11 @@ export function DailyTotalsReport() {
       )}
       {totals && (
         <div className="mt-8 grid gap-4 sm:grid-cols-2" aria-live="polite">
-          <section className="bg-panel p-6">
+          <section className="rule min-w-0 bg-panel p-4 sm:p-6">
             <h2 className="eyebrow">Cups sold</h2>
             <p className="numeral mt-2 text-4xl">{totals.cups}</p>
           </section>
-          <section className="bg-panel p-6">
+          <section className="rule min-w-0 bg-panel p-4 sm:p-6">
             <h2 className="eyebrow">Recorded sales</h2>
             <p className="numeral mt-2 text-4xl">
               {formatPrice(totals.sales_cents)}

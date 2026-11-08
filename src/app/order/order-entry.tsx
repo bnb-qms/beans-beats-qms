@@ -40,7 +40,7 @@ function emptyDraft(): Draft {
 
 function TrackingReceipt({ receipt }: { receipt: Receipt }) {
   return receipt.tracking_url && receipt.tracking_qr ? (
-    <div className="rule my-6 bg-panel p-5 text-center">
+    <div className="rule my-6 bg-panel p-4 sm:p-6 text-center">
       <h2 className="section-title">Scan to track your order</h2>
       <Image
         src={receipt.tracking_qr}
@@ -62,7 +62,7 @@ function TrackingReceipt({ receipt }: { receipt: Receipt }) {
       </p>
     </div>
   ) : (
-    <p role="status" className="my-5 text-muted">
+    <p role="status" className="my-6 text-muted">
       {receipt.tracking_warning ||
         "Tracking is unavailable for this saved receipt. Keep the pickup number and check with counter staff."}
     </p>
@@ -361,7 +361,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
             {formatPrice(cents(receipt.total_amount))}
           </span>
         </p>
-        <p className="my-5 text-muted">
+        <p className="my-6 text-muted">
           Saved once in the barista queue. Keep the pickup number for
           collection.
         </p>
@@ -385,12 +385,12 @@ export function OrderEntry({ staff }: { staff: Staff }) {
     );
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4 py-8">
+      <div className="page-intro">
         <div>
           <p className="eyebrow">Counter / 01</p>
           <h1 className="headline mt-2">Take an order</h1>
         </div>
-        <p className="text-muted" role="status">
+        <p className="eyebrow max-w-xl" role="status">
           {connected
             ? "Connected · menu updates automatically"
             : "Connection unavailable · draft retained"}
@@ -403,13 +403,13 @@ export function OrderEntry({ staff }: { staff: Staff }) {
       )}
       {(pendingOrders.length > 0 || syncedOrders.length > 0) && (
         <section
-          className="mb-6 space-y-3"
+          className="mb-6 space-y-4"
           aria-label="Offline order synchronization"
         >
           {pendingOrders.map((order) => (
             <article
               key={order.requestId}
-              className="border-l-4 border-signal bg-panel p-4"
+              className="border-l-4 border-ink bg-panel p-4"
             >
               <p className="font-bold">
                 {order.needsReview ? "Needs review" : "Pending sync"}:{" "}
@@ -428,7 +428,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                 </p>
               )}
               {order.needsReview && (
-                <div className="mt-3 flex flex-wrap gap-3">
+                <div className="mt-4 flex flex-wrap gap-4">
                   <Button onClick={() => void editRejected(order)}>
                     Edit after POS reconciliation
                   </Button>
@@ -445,7 +445,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           {syncedOrders.map((order) => (
             <article
               key={order.requestId}
-              className="border-l-4 border-signal bg-panel p-4"
+              className="border-l-4 border-ink bg-panel p-4"
             >
               <p className="font-bold">
                 Synced: #{order.receipt.order_number}{" "}
@@ -473,7 +473,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           ))}
         </section>
       )}
-      <div className="grid items-start gap-8 lg:grid-cols-[1fr_24rem]">
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <section aria-label="Drink menu">
           <h2 className="section-title mb-4">Choose drinks</h2>
           {!menu && (
@@ -492,19 +492,19 @@ export function OrderEntry({ staff }: { staff: Staff }) {
               .filter((d) => d.is_active)
               .map((drink) => (
                 <article
-                  className="rule flex min-h-40 flex-col justify-between bg-panel p-5"
+                  className="rule flex min-w-0 min-h-40 flex-col justify-between bg-panel p-4 sm:p-6"
                   key={drink.id}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-2xl font-bold capitalize">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="min-w-0 break-words text-2xl font-bold capitalize">
                       {drink.name}
                     </h3>
-                    <span className="numeral font-bold">
+                    <span className="numeral shrink-0 font-bold">
                       {formatPrice(cents(drink.base_price))}
                     </span>
                   </div>
                   <Button
-                    className="mt-5"
+                    className="mt-6"
                     disabled={locked || !drink.is_available}
                     onClick={() =>
                       change({
@@ -542,8 +542,8 @@ export function OrderEntry({ staff }: { staff: Staff }) {
               );
               const problem = menu ? unavailable(line, menu) : null;
               return (
-                <article className="rule bg-panel p-5" key={line.id}>
-                  <div className="flex items-center justify-between gap-4">
+                <article className="rule bg-panel p-4 sm:p-6" key={line.id}>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
                     <h3 className="text-xl font-bold capitalize">
                       {drink?.name ?? "Unavailable drink"}
                     </h3>
@@ -565,7 +565,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                     <label className="grid gap-2">
                       Quantity
                       <input
-                        className={inputClass}
+                        className={`${inputClass} numeral`}
                         type="number"
                         inputMode="numeric"
                         min="1"
@@ -580,7 +580,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                     </label>
                     <fieldset
                       disabled={locked}
-                      className="flex flex-wrap items-end gap-3"
+                      className="flex flex-wrap items-end gap-4"
                     >
                       <legend className="mb-2">
                         Options ·{" "}
@@ -600,7 +600,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                         .map((option) => (
                           <label
                             key={option.id}
-                            className={`flex min-h-tap items-center gap-3 border-2 px-3 ${line.add_on_ids.includes(option.id) ? "border-ink bg-paper" : "border-hair"}`}
+                            className={`flex min-h-tap items-center gap-4 border-2 px-3 ${line.add_on_ids.includes(option.id) ? "border-ink bg-paper" : "border-hair"}`}
                           >
                             <input
                               className="size-5 accent-ink"
@@ -632,16 +632,16 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                     </fieldset>
                   </div>
                   {problem && (
-                    <p className="mt-3 text-error" role="alert">
+                    <p className="mt-4 text-error" role="alert">
                       {problem}
                     </p>
                   )}
                   {!validQuantity(line.quantity) && (
-                    <p role="alert" className="mt-3 text-error">
+                    <p role="alert" className="mt-4 text-error">
                       Enter a whole-number quantity from 1 to 100.
                     </p>
                   )}
-                  <p className="numeral mt-3 text-right font-bold">
+                  <p className="numeral mt-4 text-right font-bold">
                     {menu && validQuantity(line.quantity)
                       ? formatPrice(lineTotal(line, menu))
                       : "—"}
@@ -651,9 +651,9 @@ export function OrderEntry({ staff }: { staff: Staff }) {
             })}
           </div>
         </section>
-        <aside className="rule bg-panel p-6 lg:sticky lg:top-6">
+        <aside className="rule min-w-0 bg-panel p-4 sm:p-6 lg:sticky lg:top-6">
           <h2 className="text-xl font-bold">Guest &amp; total</h2>
-          <label className="mt-5 grid gap-2 font-bold">
+          <label className="mt-6 grid gap-2 font-bold">
             First name (optional)
             <input
               className={inputClass}
@@ -681,7 +681,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                 onChange={(e) => change({ ...draft, mobile: e.target.value })}
               />
             </label>
-            <label className="mt-3 flex min-h-tap items-start gap-3">
+            <label className="mt-4 flex min-h-tap items-start gap-4">
               <input
                 className="mt-1 size-5 shrink-0 accent-ink"
                 type="checkbox"
@@ -699,7 +699,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           </details>
           {draft.mobile &&
             (!/^[89]\d{7}$/.test(draft.mobile) || !draft.consent) && (
-              <p role="alert" className="mt-3 text-error">
+              <p role="alert" className="mt-4 text-error">
                 Enter an 8-digit Singapore mobile starting with 8 or 9 and
                 confirm consent, or leave the number blank.
               </p>
@@ -718,7 +718,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                   ? formatPrice(total)
                   : "—"}
             </p>
-            <p className="mb-5 text-muted">
+            <p className="mb-6 text-muted">
               Take payment first. Then submit this order to the barista queue.
             </p>
           </div>

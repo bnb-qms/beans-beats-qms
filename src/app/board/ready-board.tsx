@@ -63,10 +63,12 @@ export function ReadyBoard() {
           "max(2rem, env(safe-area-inset-top)) max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom)) max(2rem, env(safe-area-inset-left))",
       }}
     >
-      <header className="flex items-center justify-between gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="headline">Ready for pickup</h1>
-        <div className="flex items-center gap-4">
-          {USE_SAMPLE && <span className="eyebrow">Sample data</span>}
+        <div className="flex flex-wrap items-center gap-4">
+          {USE_SAMPLE && (
+            <span className="eyebrow text-faint">Sample data</span>
+          )}
           {reconnecting && (
             <span
               role="status"
@@ -87,7 +89,7 @@ export function ReadyBoard() {
         </p>
       )}
 
-      <ul className="mt-10 grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-x-8 gap-y-10">
+      <ul className="mt-8 grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-8">
         {orders?.map((order) => (
           // New cards mount with the orange arrival flash; existing cards keep their key and stay still.
           <li

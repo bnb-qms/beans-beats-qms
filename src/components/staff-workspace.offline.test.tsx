@@ -6,6 +6,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { offlineStore, rememberStaff } from "@/lib/offline-store";
 import { StaffWorkspace } from "./staff-workspace";
 
+vi.mock("next/navigation", () => ({ usePathname: () => "/queue" }));
+
 let host: HTMLDivElement;
 let root: Root;
 

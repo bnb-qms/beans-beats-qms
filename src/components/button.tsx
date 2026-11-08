@@ -27,7 +27,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`inline-flex min-h-tap items-center justify-center gap-2 border-2 px-5 font-bold select-none transition-colors duration-75 disabled:cursor-not-allowed ${block ? "w-full" : ""} ${variants[variant]} ${className}`}
+      className={`inline-flex min-h-tap min-w-0 items-center justify-center gap-2 border-2 px-5 font-bold wrap-anywhere select-none transition-colors duration-75 disabled:cursor-not-allowed ${block ? "w-full" : ""} ${variants[variant]} ${className}`}
       {...props}
     />
   );

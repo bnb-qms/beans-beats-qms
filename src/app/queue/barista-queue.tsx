@@ -74,6 +74,7 @@ export function BaristaQueueView({
   error,
   onRetry,
   onAdvance,
+  onCancel,
   onDismissConflict,
 }: {
   orders: QueueOrder[] | null;
@@ -84,6 +85,7 @@ export function BaristaQueueView({
   error: string;
   onRetry: () => void;
   onAdvance?: (order: QueueOrder) => void;
+  onCancel?: (order: QueueOrder) => void;
   onDismissConflict?: (orderId: string) => void;
 }) {
   const projectedOrders = orders
@@ -217,6 +219,19 @@ export function BaristaQueueView({
                     onClick={() => onAdvance?.(order)}
                   >
                     {isUpdating ? "Updating…" : actionLabel}
+                  </Button>
+                )}
+                {onCancel && (
+                  // Cancelling needs the server, so it is off while offline or while a change is waiting to sync.
+                  <Button
+                    variant="quiet"
+                    className="mt-2 self-center text-sm"
+                    disabled={
+                      isUpdating || !connected || isPendingSync || !pendingReady
+                    }
+                    onClick={() => onCancel(order)}
+                  >
+                    Cancel order
                   </Button>
                 )}
               </article>
@@ -525,6 +540,54 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
     }
   }
 
+  async function cancelOrder(order: QueueOrder) {
+    if (inFlightOrders.current.has(order.id)) return;
+    const name = order.customer_first_name
+      ? ` (${order.customer_first_name})`
+      : "";
+    if (
+      !window.confirm(
+        `Cancel order #${order.order_number}${name}? It leaves the queue and board and is excluded from sales. Refund any payment on the POS separately.`,
+      )
+    )
+      return;
+    inFlightOrders.current.add(order.id);
+    setUpdatingIds((prev) => [...prev, order.id]);
+    setError("");
+    try {
+      await requestJson("/api/queue/cancel", {
+        method: "POST",
+        body: JSON.stringify({
+          orderId: order.id,
+          expectedVersion: order.version,
+        }),
+      });
+      if (!active.current) return;
+      setOrders((prev) => {
+        if (!prev) return prev;
+        const nextList = prev.filter((o) => o.id !== order.id);
+        writeCachedQueue(staff.id, nextList);
+        void updateSnapshot(staff, { orders: nextList });
+        return nextList;
+      });
+      void refresh().catch(() => {});
+    } catch (e) {
+      if (!active.current) return;
+      setError(
+        e instanceof TypeError
+          ? "Could not reach the server to cancel. Check your connection and retry."
+          : e instanceof Error
+            ? e.message
+            : "Cancellation failed. Review the order and retry.",
+      );
+      void refresh().catch(() => {});
+    } finally {
+      inFlightOrders.current.delete(order.id);
+      if (active.current)
+        setUpdatingIds((prev) => prev.filter((id) => id !== order.id));
+    }
+  }
+
   async function dismissConflict(orderId: string) {
     if (
       await savePending((current) =>
@@ -544,6 +607,7 @@ export function BaristaQueue({ staff }: { staff: Staff }) {
       error={storageError || error}
       onRetry={() => void refresh().catch(() => {})}
       onAdvance={(order) => void advanceOrder(order)}
+      onCancel={(order) => void cancelOrder(order)}
       onDismissConflict={dismissConflict}
     />
   );

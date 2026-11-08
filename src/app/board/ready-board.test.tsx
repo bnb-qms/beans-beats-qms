@@ -112,6 +112,14 @@ describe("ReadyBoard", () => {
     expect(host.textContent).toContain("No orders ready yet");
   });
 
+  it("shows only the pickup number for an unnamed order", async () => {
+    mocks.rpc.mockResolvedValue(ok([row(41, "", "2026-11-08T04:01:00.000Z")]));
+    await mountAndLoad();
+    const card = host.querySelector("li");
+    expect(card?.textContent).toBe("41");
+    expect(card?.querySelectorAll("p")).toHaveLength(1);
+  });
+
   it("polls the ready list every three seconds", async () => {
     mocks.rpc.mockResolvedValue(
       ok([row(41, "Mei", "2026-11-08T04:01:00.000Z")]),

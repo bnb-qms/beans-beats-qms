@@ -16,14 +16,14 @@ The base look for every screen. It comes from the Beans&Beats deck and the earli
 
 All in `src/app/globals.css`. Use these, not raw Tailwind colours like `zinc-500` or `lime-400`.
 
-| Kind    | Use                                                                                                  |
-| ------- | ---------------------------------------------------------------------------------------------------- |
-| Colours | `ink`, `paper`, `panel`, `muted`, `faint`, `hair`, `signal`, `error` (e.g. `bg-panel`, `text-muted`) |
-| Type    | `display` (order numbers, the big word), `headline`, `section-title`, `eyebrow`                      |
-| Numbers | `numeral` on every order number, price and total (tabular digits)                                    |
-| Rule    | `rule` for the deck's 3px black top border                                                           |
-| Touch   | `min-h-tap` (52px): nothing tappable on a staff screen is smaller                                    |
-| Motion  | `animate-arrive`: the 0.9 s orange flash when an order becomes ready                                 |
+| Kind    | Use                                                                                                                                                             |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Colours | `ink`, `paper`, `panel`, `muted`, `faint`, `hair`, `signal`, `error`, plus `collected` and `check` for F20 scanner results only (e.g. `bg-panel`, `text-muted`) |
+| Type    | `display` (order numbers, the big word), `headline`, `section-title`, `eyebrow`                                                                                 |
+| Numbers | `numeral` on every order number, price and total (tabular digits)                                                                                               |
+| Rule    | `rule` for the deck's 3px black top border                                                                                                                      |
+| Touch   | `min-h-tap` (52px): nothing tappable on a staff screen is smaller                                                                                               |
+| Motion  | `animate-arrive`: the 0.9 s orange flash when an order becomes ready                                                                                            |
 
 ## Components
 

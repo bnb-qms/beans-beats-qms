@@ -6,7 +6,6 @@ import {
   readCachedQueue,
   readPendingUpdates,
   writeCachedQueue,
-  writePendingUpdates,
 } from "./barista-queue";
 import type { PendingStatusUpdate, QueueOrder } from "@/lib/queue";
 
@@ -228,8 +227,8 @@ describe("BaristaQueueView", () => {
   });
 });
 
-describe("sessionStorage offline cache and pending updates", () => {
-  it("persists and restores per-staff queue orders and pending status updates", () => {
+describe("sessionStorage offline cache and legacy pending updates", () => {
+  it("restores per-staff queue orders and reads pending updates from older versions", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("sessionStorage", {
       getItem: (key: string) => store.get(key) ?? null,
@@ -251,8 +250,34 @@ describe("sessionStorage offline cache and pending updates", () => {
         expectedVersion: 1,
       },
     ];
-    writePendingUpdates("staff-1", pending);
+    sessionStorage.setItem(
+      "bb-queue-pending-updates:staff-1",
+      JSON.stringify(pending),
+    );
     expect(readPendingUpdates("staff-1")).toEqual(pending);
     expect(readPendingUpdates("staff-2")).toEqual([]);
+  });
+});
+
+describe("cancel order (#42)", () => {
+  const view = (connected: boolean) =>
+    renderToStaticMarkup(
+      createElement(BaristaQueueView, {
+        orders: sampleOrders,
+        connected,
+        error: "",
+        onRetry() {},
+        onCancel() {},
+      }),
+    );
+
+  it("offers Cancel order on every active order when online", () => {
+    const html = view(true);
+    expect(html.match(/>Cancel order</g)?.length).toBe(sampleOrders.length);
+    expect(html).not.toMatch(/disabled=""[^>]*>Cancel order/);
+  });
+
+  it("disables Cancel order while offline", () => {
+    expect(view(false)).toMatch(/disabled=""[^>]*>Cancel order/);
   });
 });

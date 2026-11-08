@@ -21,6 +21,7 @@ Copied from the "Feature List" tab of the team's Project Tables sheet on 6 Nov 2
 | F17 | #15   | Staff logins                | All              | 44.1, 44.2   | TL    | [F17](specs/F17-staff-logins.md)                | Done (#34)                                          |
 | F18 | #16   | Personal data handling      | All              | 55-58        | Henry | [F18](specs/F18-personal-data-handling.md)      | Done: rules in F1, notice in F7, clean-up in README |
 | F19 | #17   | Reset between event days    | All              | 49, 50       | Henry | [F19](specs/F19-reset-between-event-days.md)    | Done: automatic Singapore-day reset, README steps   |
+| F20 |       | Collection scanner          | 2. Barista queue | none yet     | Henry | [F20](specs/F20-collection-scanner.md)          | Built; real phone and webcam test pending           |
 
 Out of scope:
 

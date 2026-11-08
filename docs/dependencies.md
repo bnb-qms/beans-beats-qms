@@ -32,6 +32,7 @@ When your PR adds a migration, tell Henry or Win so it gets applied to the team 
 | F17 Staff logins             | TL    | Mostly done    | Sign-in exists (F1). Left: a sign-out button on each staff page, test logins for judges, and role checks on any new routes.               |
 | F18 Personal data handling   | Henry | Done           | Privacy notice built in F7; clean-up function `erase_guest_details` and README steps.                                                     |
 | F19 Reset between event days | Henry | Done           | Numbers restart per Singapore day; queue and board show only today; README "Daily reset" steps written.                                   |
+| F20 Collection scanner       | Henry | Built          | `scan_ready_orders` and `scan_collect` (migration 20261108000000), `/api/scan`, guest page QR, `/scan` page with offline scans.           |
 
 ## The order the pitch needs
 

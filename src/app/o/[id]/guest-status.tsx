@@ -1,8 +1,9 @@
 "use client";
 
+import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
-import { guestStatuses } from "@/lib/guest-order";
+import { guestStatuses, TRACKING_TOKEN } from "@/lib/guest-order";
 import {
   initialGuestState,
   watchGuestOrder,
@@ -15,6 +16,7 @@ const configured =
 
 export function GuestStatus({ id }: { id: string }) {
   const [result, setResult] = useState(initialGuestState);
+  const [qr, setQr] = useState<string | null>(null);
   const watcher = useRef<ReturnType<typeof watchGuestOrder> | null>(null);
   const sample = !configured && id === "example";
 
@@ -24,10 +26,33 @@ export function GuestStatus({ id }: { id: string }) {
     return () => subscription.stop();
   }, [id]);
 
+  // F20: the tracking link doubles as the collection QR. Drawn on the phone, so it works offline.
+  useEffect(() => {
+    let live = true;
+    const draw = () => {
+      const token = window.location.hash.slice(1);
+      if (id !== "track" || !TRACKING_TOKEN.test(token)) return setQr(null);
+      void QRCode.toDataURL(`${window.location.origin}/o/track#${token}`, {
+        width: 320,
+        margin: 4,
+        errorCorrectionLevel: "M",
+      })
+        .then((url) => live && setQr(url))
+        .catch(() => live && setQr(null));
+    };
+    draw();
+    window.addEventListener("hashchange", draw);
+    return () => {
+      live = false;
+      window.removeEventListener("hashchange", draw);
+    };
+  }, [id]);
+
   return (
     <GuestStatusView
       result={result}
       sample={sample}
+      qr={qr}
       onRefresh={() => watcher.current?.refresh()}
     />
   );
@@ -36,17 +61,19 @@ export function GuestStatus({ id }: { id: string }) {
 export function GuestStatusView({
   result,
   sample,
+  qr = null,
   onRefresh,
 }: {
   result: GuestTrackingState;
   sample: boolean;
+  qr?: string | null;
   onRefresh: () => void;
 }) {
   const order = result.kind === "order" ? result.order : null;
   const status = order ? guestStatuses[order.status] : null;
   return (
     <main
-      className={`flex min-h-dvh flex-1 flex-col ${order?.status === "ready" ? "bg-signal text-ink" : "bg-paper text-ink"}`}
+      className={`flex min-h-dvh flex-1 flex-col ${order?.status === "ready" ? "bg-signal text-ink [&_.eyebrow]:text-ink" : "bg-paper text-ink"}`}
       style={{
         padding:
           "max(1.5rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left))",
@@ -72,6 +99,23 @@ export function GuestStatusView({
                   ? `Order #${order.order_number} is ready. Please collect at the booth.`
                   : status.explanation}
               </p>
+              {qr &&
+                order.status !== "collected" &&
+                order.status !== "cancelled" && (
+                  <figure className="mt-8">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local data URL */}
+                    <img
+                      src={qr}
+                      width={240}
+                      height={240}
+                      alt={`Collection QR for order ${order.order_number}`}
+                      className="border-[3px] border-ink bg-paper"
+                    />
+                    <figcaption className="mt-3 font-bold">
+                      Show this QR at the pickup screen to collect your drink.
+                    </figcaption>
+                  </figure>
+                )}
             </>
           ) : (
             <>

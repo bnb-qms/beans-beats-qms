@@ -49,151 +49,79 @@ Shared staff accounts for judges and testing staff screens on the [demo site](ht
 | Admin   | `preview-admin`   | `local-preview-password` | Everything, including prices, deactivating drinks, reports |
 | Barista | `preview-barista` | `local-preview-password` | Take orders, update the queue, mark items sold out         |
 
-> **Note:** These are public test accounts. Change both passwords before the live event (26 Nov), and never use them for real staff.
+These are public test accounts. Change both passwords before the event (26 Nov), and never use them for real staff.
 
-Both roles can open `/order`, `/queue`, and `/menu`. Baristas can change item availability only; editing prices and deactivating/reactivating drinks require an admin. `/report` and its CSV export require admin access, including direct API requests. `/board` and guest tracking links remain public.
+Both roles can open `/order`, `/queue` and `/menu`. Baristas can change
+availability only; prices and deactivation require admin. `/report` and its CSV
+export require admin, including direct API requests. The queue currently shows
+a signed-in placeholder until F4–F6 are implemented. `/board` and guest tracking
+links remain public.
 
----
+### Staff sessions (F17)
 
-## Features
+The agreed implementation uses pre-provisioned usernames and bcrypt passwords,
+with a signed, HttpOnly 12-hour cookie; it supersedes the original F17 proposal
+for Supabase Auth email/password. There is no public registration. The legacy
+`counter` role remains supported as required by the existing schema. Staff
+identity, active status and role are checked on the server for every protected
+request. Removing or disabling a staff record denies its next request.
 
-- **Counter Order Entry (`/order`, F1 & F15):**
-  - Select drinks, quantities, temperature (Hot / Iced `+S$1`), and milk options (Regular / Oat `+S$1`, restricted on Espresso, Americano, and Pourover).
-  - Real-time stock validation greys out submission if a selected drink or add-on becomes unavailable.
-  - Captures customer first name and optional consented Singapore mobile number (8 digits starting with `8` or `9`).
-  - Snapshots drink names, base prices, and add-on prices on every order line so subsequent menu edits never alter historical totals.
-  - Generates a locally rendered tracking QR code on the receipt upon confirmation.
-- **Barista Queue & One-Tap Status Updates (`/queue`, F4–F6):**
-  - Displays today's active orders in sequence (`queued` → `preparing` → `ready` → `collected`, or `cancelled` before collection).
-  - Polls every 3 seconds for live updates without manual refreshes.
-  - Enforces optimistic concurrency (`version` checks) so stale status taps never silently overwrite newer state.
-- **QR Order Tracking & Ready Alert (`/o/track#<token>`, F7 & F8):**
-  - Each order receives a distinct cryptographic tracking token passed in the URL hash fragment (`#<token>`) so credentials are never sent in HTTP `Referer` headers or server URL logs.
-  - Polls `guest_order_status` every 3 seconds while visible (backing off up to 30 seconds during connection drops) and displays a persistent pickup prompt with the order number once `ready`.
-  - `/o/example` provides a labelled sample preview when database settings are absent.
-- **Public Ready Board (`/board`, F9):**
-  - High-contrast booth display polling `ready_orders()` every 3 seconds to show pickup numbers and customer first names ready for collection.
-- **Menu & Availability Controls (`/menu`, F10–F12):**
-  - Baristas and admins can toggle drinks and add-ons between in stock and sold out (`is_available`).
-  - Admins can update drink base prices and option surcharges, as well as deactivate (`is_active = false`) or reactivate menu items without breaking historical order records.
-- **Daily Sales Report & CSV Export (`/report`, F13 & F14):**
-  - Admin-only daily summary of total cups sold and revenue grouped by Singapore business date (`Asia/Singapore`), excluding cancelled orders.
-  - One-click CSV export generating one row per order line (including cancelled orders clearly marked as excluded from totals) plus daily summary totals, with zero customer personal data for safe POS reconciliation.
-- **Offline Mode & Automatic Sync (F16):**
-  - Caches the app shell (`public/sw.js`), menu, active queue, and verified staff session metadata in IndexedDB (`Dexie`).
-  - Allows baristas to save new orders and tap status updates while offline, queuing mutations locally and replaying them idempotently (`client_request_id` and `version`) upon reconnection. Rejected submissions or conflicts are flagged as `Needs review` rather than silently dropped.
-- **Staff Sessions & Role-Based Security (F17):**
-  - Pre-provisioned usernames with salted `bcrypt` hashes in PostgreSQL and signed 12-hour `HttpOnly` cookies (`STAFF_SESSION_SECRET`).
-  - Cross-tab sign-out notifications, per-account session storage for order drafts, and server-side verification on every protected route.
-- **PDPA Personal Data Protection & Automatic Daily Reset (F18 & F19):**
-  - Minimal data collection (first name required; mobile optional with explicit timestamped consent), strict public RPC boundaries that never return phone numbers, post-event anonymisation function (`erase_guest_details`), and automatic midnight `Asia/Singapore` day rollover restarting order numbers from `1`.
+Signing out hides protected screens and notifies other open staff tabs. Returning
+to a hidden tab, using Back, or reconnecting hides the workspace until the server
+rechecks access. A rejected session returns to sign-in. Order drafts and uncertain
+submissions remain in per-account browser session storage; signing back in as the
+same account in that tab restores them. A different account never loads that
+account's saved draft. Closing the tab or clearing browser storage can remove it.
+Sign-in and confirmed sign-out require a working connection; a failed sign-out
+shows an error and must be retried before handing over the device.
 
----
+F16's persistent offline queue, cached access and conflict recovery are not built
+yet. No new offline session is granted. Reconnection checks access before
+remounting operational screens; submissions stay online-only. F19 owns event-day
+reset. These dependencies remain outstanding acceptance checks for the full F17
+offline/event-day workflow.
 
-## Tech Stack
+### Demo data and reset
 
-- **Framework:** [Next.js 16](https://nextjs.org/) (App Router, Route Handlers) & [React 19](https://react.dev/)
-- **Language:** [TypeScript 5](https://www.typescriptlang.org/)
-- **Styling:** [Tailwind CSS 4](https://tailwindcss.com/) with custom design tokens
-- **Database & Backend:** [Supabase](https://supabase.com/) (PostgreSQL, `pgcrypto`, `security definer` RPCs, `@supabase/supabase-js`, `@supabase/ssr`)
-- **Offline Persistence:** [Dexie.js](https://dexie.org/) (IndexedDB wrapper) & Custom Service Worker (`public/sw.js`)
-- **QR Code Generation:** [`qrcode`](https://github.com/soldair/node-qrcode)
-- **Testing & Tooling:** [Vitest 5](https://vitest.dev/), Happy DOM, `fake-indexeddb`, SQL regression scripts, ESLint 9, Prettier 3
-- **Deployment:** [Vercel](https://vercel.com/) (Singapore `sin1`) & Supabase Cloud (Singapore)
+Use representative sample orders only with these public accounts. Before storing
+live event data, move the demonstration to a separate Supabase project and point
+its deployment/PR-preview environment at that demo project. Provision demo staff
+through trusted SQL as described below; never copy live staff credentials or
+customer records into the demo. The current shared team database is not proof of
+demo/live isolation.
 
----
+For a disposable **local** demo, follow Local test database setup below, then run
+`npx supabase db reset --local` to reload migrations and representative mock data.
+This deletes local demo edits and orders and restores the documented mock logins.
+Never run it against live data. There is no hosted reset screen yet: ask the booth
+lead to restore sample data in the isolated demo database. Do not reset the shared
+hosted database as part of testing staff logins.
 
-## Architecture
+Login/session regression checks are in `src/app/api/staff/session/route.test.ts`
+and `src/components/staff-workspace.test.tsx`. Run
+`supabase/tests/staff_logins.sql` only against a disposable migrated database;
+it checks credential verification, disabled accounts, throttling and permissions
+and rolls back its fixtures.
 
-The application enforces a strict boundary between public browser clients, authenticated staff workspaces, Next.js server route handlers, and PostgreSQL functions:
+## Stack
 
-1. **Staff Workspace & Session Layer (`src/components/staff-workspace.tsx`, `src/lib/staff-server.ts`):**
-   - Staff pages (`/order`, `/queue`, `/menu`, `/report`) wrap their content in `StaffWorkspace`.
-   - Staff authenticate via `POST /api/staff/session`, which verifies credentials against `public.staff` (`bcrypt`) and sets a signed 12-hour `HttpOnly` cookie.
-   - Every protected API route calls `checkOrigin(request)` (for mutations) and `requireStaff()` to verify the session cookie and confirm the staff record is still active in the database.
-2. **Database RPC Boundary (`supabase/migrations/`):**
-   - Direct table access is locked down. Staff route handlers connect with `SUPABASE_SERVICE_ROLE_KEY` and execute `security definer` PostgreSQL functions that explicitly take `p_staff_id` and verify active status and role permissions inside the database:
-     - `counter_submit_order` — validates availability, snapshots prices, allocates the daily Singapore pickup number (`1, 2, 3...`), and stores the order idempotently via `client_request_id`.
-     - `counter_edit_menu` — enforces barista vs. admin permissions for availability, price edits, deactivation, and reactivation.
-     - `queue_orders` & `queue_update_status` — loads today's active queue and performs version-checked status transitions.
-     - `report_daily_totals` & `report_csv_export` — computes admin-only daily aggregates and line-item exports.
-   - Public pages (`/board` and `/o/track#<token>`) use the browser anon client (`src/lib/supabase/client.ts`) to call only `ready_orders()` and `guest_order_status(p_tracking_token)`, which never return customer mobile numbers.
-3. **Offline Store & Sync Engine (`src/lib/offline-store.ts`, `src/components/offline-support.tsx`):**
-   - Stores cached menu items, active queue snapshots, pending order submissions, and queued status transitions in IndexedDB via `Dexie`, scoped to the signed-in staff account.
-   - Automatically flushes pending actions in sequence when connectivity is restored.
+Next.js (App Router, Route Handlers) · TypeScript · Tailwind CSS · Supabase (Postgres) · Vitest · Vercel. Offline storage (IndexedDB + service worker) is added by its owner.
 
-```mermaid
-erDiagram
-    STAFF ||--o{ ORDERS : creates
-    ORDERS ||--|{ ORDER_ITEMS : contains
-    MENU_ITEMS ||--o{ ORDER_ITEMS : referenced_by
-    ORDER_ITEMS ||--o{ ORDER_ITEM_ADD_ONS : has
-    ADD_ONS ||--o{ ORDER_ITEM_ADD_ONS : referenced_by
+## Modules
 
-    STAFF {
-        uuid id PK
-        string username UK
-        string password_hash
-        string role
-        boolean is_active
-    }
-    MENU_ITEMS {
-        uuid id PK
-        string name
-        decimal base_price
-        boolean is_available
-        boolean is_active
-    }
-    ADD_ONS {
-        uuid id PK
-        string name
-        decimal price
-        boolean is_available
-    }
-    DAILY_ORDER_COUNTERS {
-        date event_day PK
-        int last_number
-    }
-    ORDERS {
-        uuid id PK
-        date event_day
-        int order_number
-        string customer_first_name
-        string customer_mobile
-        string status
-        decimal total_amount
-        uuid client_request_id UK
-        string tracking_token_hash
-        int version
-    }
-    ORDER_ITEMS {
-        uuid id PK
-        uuid order_id FK
-        uuid menu_item_id FK
-        string menu_item_name
-        int quantity
-        decimal unit_price
-    }
-    ORDER_ITEM_ADD_ONS {
-        uuid id PK
-        uuid order_item_id FK
-        uuid add_on_id FK
-        string add_on_name
-        decimal unit_price
-    }
-```
+| Module                | Route     |
+| --------------------- | --------- |
+| 1. Order screen       | `/order`  |
+| 2. Barista queue      | `/queue`  |
+| Pickup scanner (F20)  | `/scan`   |
+| 3. Guest status page  | `/o/[id]` |
+| 4. Ready board        | `/board`  |
+| 5. Menu controls      | `/menu`   |
+| 6. Daily sales report | `/report` |
 
----
+## Setup
 
-## Getting Started
-
-### Prerequisites
-
-- **Node.js** 22 or later
-- **npm** (bundled with Node.js)
-- **Docker Desktop** (Linux engine) — required only if running a local disposable Supabase instance via `npx supabase start`
-
-### Installation
+Needs Node 22 or later.
 
 ```bash
 git clone https://github.com/bnb-qms/beans-beats-qms.git
@@ -342,7 +270,15 @@ beans-beats-qms/
 
 ## Development
 
-### Workflow
+F8 polls the protected status read every 3 seconds while visible. Ready shows a
+persistent pickup message containing the order number. Repeated Ready responses
+do not reannounce that message; Collected or Cancelled removes the pickup prompt.
+During connection failures, the last confirmed order stays visible with a
+reconnecting notice and last-update time. Failed requests back off up to 30
+seconds; returning to the page or reconnecting triggers an immediate check.
+No sound, SMS, notification permission or locked-phone delivery is required.
+The tracking page also shows its own QR for the pickup scanner (F20). Without Supabase configuration, `/o/example`
+shows labelled sample data; other links do not show sample orders.
 
 1. Pick an issue on the project board (or create one), assign yourself, and move it to **In Progress**.
 2. Branch off the latest `main`: `git switch main && git pull && git switch -c 12-short-name`.
@@ -369,7 +305,21 @@ To run SQL regression tests (`supabase/tests/*.sql`), execute them against a dis
 
 ## Deployment
 
-The production and demo application is deployed on **Vercel** (`sin1` Singapore region) backed by **Supabase** (`beans-beats-qms-sg` in Singapore).
+## Pickup scanner (F20)
+
+Apply `supabase/migrations/20261108000000_collection_scanner.sql` and run `supabase/tests/collection_scanner.sql` against a disposable database to check it.
+
+Booth set-up, once per event day:
+
+1. Open `/scan` on the pickup laptop in Chrome or Edge, facing the customers, and sign in as a barista. The 12-hour sign-in covers a full day.
+2. Allow camera access when the browser asks. If it was refused, allow it in the site settings and press **Try camera again**.
+3. Leave the page open (full screen with F11). It needs no taps.
+
+A customer holds up the QR on their tracking page. Green means the order is now Collected. Amber means the barista should check: the drink is not ready, the order was cancelled, or the scanner could not confirm it. The barista's **Mark collected** button on `/queue` still works for customers without a QR.
+
+While online, the scanner keeps a copy of today's Ready orders (hashed codes only). When the connection drops, a code in that copy still shows green and is saved on the laptop, then sent automatically once back online. A code not in the copy shows amber. A saved scan the server rejects is listed under **Needs review** on `/scan`; check that order on `/queue`, then dismiss it.
+
+## Daily reset
 
 ### Applying Database Migrations
 

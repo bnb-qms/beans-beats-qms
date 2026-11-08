@@ -33,6 +33,12 @@ export async function requestJson<T>(
   }
   return data;
 }
+/** A server message for staff, or the fallback when the network failed (browsers say "Failed to fetch"). */
+export function staffMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && !(error instanceof TypeError)
+    ? error.message
+    : fallback;
+}
 export const inputClass =
   "min-h-tap w-full border-2 border-ink bg-paper px-3 py-2 disabled:opacity-50";
 
@@ -194,6 +200,12 @@ export function StaffWorkspace({
               href="/queue"
             >
               Barista queue
+            </Link>
+            <Link
+              className="inline-flex min-h-tap items-center underline"
+              href="/scan"
+            >
+              Pickup scanner
             </Link>
             <Link
               className="inline-flex min-h-tap items-center underline"

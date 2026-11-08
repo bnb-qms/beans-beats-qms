@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { requestJson, StaffWorkspace } from "./staff-workspace";
 
@@ -36,4 +36,17 @@ it("ends the workspace on a protected 401, preserving permission errors and fail
     "/api/counter/menu",
     expect.objectContaining({ cache: "no-store" }),
   );
+});
+
+describe("staffMessage", () => {
+  it("hides the browser's network error behind a plain message", async () => {
+    const { staffMessage } = await import("./staff-workspace");
+    expect(
+      staffMessage(new TypeError("Failed to fetch"), "No connection."),
+    ).toBe("No connection.");
+    expect(staffMessage(new Error("Admin access is required."), "x")).toBe(
+      "Admin access is required.",
+    );
+    expect(staffMessage("odd", "Fallback")).toBe("Fallback");
+  });
 });

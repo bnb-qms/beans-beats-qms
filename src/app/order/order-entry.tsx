@@ -38,6 +38,37 @@ function emptyDraft(): Draft {
   };
 }
 
+function TrackingReceipt({ receipt }: { receipt: Receipt }) {
+  return receipt.tracking_url && receipt.tracking_qr ? (
+    <div className="rule my-6 bg-panel p-5 text-center">
+      <h2 className="section-title">Scan to track your order</h2>
+      <Image
+        src={receipt.tracking_qr}
+        alt={`Tracking QR for pickup number ${receipt.order_number}`}
+        width={320}
+        height={320}
+        unoptimized
+        className="mx-auto my-4 h-auto max-w-full"
+      />
+      <a
+        href={receipt.tracking_url}
+        referrerPolicy="no-referrer"
+        className="inline-flex min-h-tap items-center underline underline-offset-4"
+      >
+        Open order status
+      </a>
+      <p className="mt-2 text-muted">
+        Keep this link private. No account or mobile number needed.
+      </p>
+    </div>
+  ) : (
+    <p role="status" className="my-5 text-muted">
+      {receipt.tracking_warning ||
+        "Tracking is unavailable for this saved receipt. Keep the pickup number and check with counter staff."}
+    </p>
+  );
+}
+
 export function OrderEntry({ staff }: { staff: Staff }) {
   const { menu, connected, error: menuError, refresh } = useMenu(staff);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
@@ -330,34 +361,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           Saved once in the barista queue. Keep the pickup number for
           collection.
         </p>
-        {receipt.tracking_url && receipt.tracking_qr ? (
-          <div className="rule my-6 bg-panel p-5 text-center">
-            <h2 className="section-title">Scan to track your order</h2>
-            <Image
-              src={receipt.tracking_qr}
-              alt={`Tracking QR for pickup number ${receipt.order_number}`}
-              width={320}
-              height={320}
-              unoptimized
-              className="mx-auto my-4 h-auto max-w-full"
-            />
-            <a
-              href={receipt.tracking_url}
-              referrerPolicy="no-referrer"
-              className="inline-flex min-h-tap items-center underline underline-offset-4"
-            >
-              Open order status
-            </a>
-            <p className="mt-2 text-muted">
-              Keep this link private. No account or mobile number needed.
-            </p>
-          </div>
-        ) : (
-          <p role="status" className="my-5 text-muted">
-            {receipt.tracking_warning ||
-              "Tracking is unavailable for this saved receipt. Keep the pickup number and check with counter staff."}
-          </p>
-        )}
+        <TrackingReceipt receipt={receipt} />
         <Button
           variant="primary"
           block
@@ -442,15 +446,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                 Synced: #{order.receipt.order_number}{" "}
                 {order.receipt.customer_first_name}
               </p>
-              {order.receipt.tracking_url && (
-                <a
-                  href={order.receipt.tracking_url}
-                  referrerPolicy="no-referrer"
-                  className="inline-flex min-h-tap items-center underline"
-                >
-                  Open tracking link
-                </a>
-              )}
+              <TrackingReceipt receipt={order.receipt} />
               <Button
                 variant="quiet"
                 className="ml-3"

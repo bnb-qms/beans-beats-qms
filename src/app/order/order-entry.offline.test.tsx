@@ -120,8 +120,8 @@ it("saves an offline order without a provisional pickup number, then shows a syn
       event_day: "2026-11-07",
       total_amount: 3,
       items: [],
-      tracking_url: null,
-      tracking_qr: null,
+      tracking_url: "https://booth.test/o/track#private-token",
+      tracking_qr: "data:image/png;base64,AAAA",
       tracking_warning: null,
     },
   });
@@ -133,6 +133,41 @@ it("saves an offline order without a provisional pickup number, then shows a syn
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
   await vi.waitFor(() => expect(host.textContent).toContain("Synced: #12 Mei"));
+  expect(
+    host
+      .querySelector('img[alt="Tracking QR for pickup number 12"]')
+      ?.getAttribute("src"),
+  ).toBe("data:image/png;base64,AAAA");
+  expect(
+    host.querySelector('a[href="https://booth.test/o/track#private-token"]'),
+  ).toBeTruthy();
+});
+
+it("shows the tracking warning when a synced receipt has no secure QR", async () => {
+  await offlineStore.syncedOrders.put({
+    requestId: "request-without-qr",
+    staffId: staff.id,
+    receipt: {
+      id: "order-2",
+      order_number: 13,
+      customer_first_name: "Mei",
+      event_day: "2026-11-07",
+      total_amount: 3,
+      items: [],
+      tracking_url: null,
+      tracking_qr: null,
+      tracking_warning: "Tracking is unavailable. Ask counter staff for help.",
+    },
+  });
+  await act(async () => {
+    root.render(<OrderEntry staff={staff} />);
+  });
+  await vi.waitFor(() =>
+    expect(host.textContent).toContain(
+      "Tracking is unavailable. Ask counter staff for help.",
+    ),
+  );
+  expect(host.querySelector('img[alt^="Tracking QR"]')).toBeNull();
 });
 
 it("lets staff restore a rejected order for reconciliation", async () => {

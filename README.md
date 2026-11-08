@@ -2,12 +2,11 @@
 
 Web-based order and pickup queue management system for the **Beans&Beats** charity coffee booth at **Christmas Together 2026** (Hall F, Marina Bay Sands, Singapore · 26–29 November 2026).
 
-|                             |                                    |
-| --------------------------- | ---------------------------------- |
-| **Live app**                | https://beans-beats-qms.vercel.app |
-| **Demo video**              | _to be added_                      |
-| **Technical summary (PDF)** | _to be added_                      |
-| **Test logins**             | [below](#test-logins)              |
+|                       |                                              |
+| --------------------- | -------------------------------------------- |
+| **Live app**          | https://beans-beats-qms.vercel.app           |
+| **Technical summary** | [docs/tech-summary.md](docs/tech-summary.md) |
+| **Test logins**       | [below](#test-logins)                        |
 
 ---
 
@@ -37,12 +36,11 @@ Beans&Beats is operating a charity coffee booth at Christmas Together 2026, an e
 ## Demo
 
 - **Live Application:** [https://beans-beats-qms.vercel.app](https://beans-beats-qms.vercel.app)
-- **Demo Video:** _To be added after recording_
-- **Technical Summary (PDF):** _To be added_
+- **Technical Summary:** [docs/tech-summary.md](docs/tech-summary.md)
 
 ### Test logins
 
-Shared staff accounts for judges and testing staff screens on the [demo site](https://beans-beats-qms.vercel.app) and PR previews. Open a staff screen, enter either account below, and use **Sign out** before changing roles:
+Shared staff accounts for judges and testing staff screens on the [live site](https://beans-beats-qms.vercel.app). PR previews cannot sign in, because the staff secrets exist only in Production. Open a staff screen, enter either account below, and use **Sign out** before changing roles:
 
 | Role    | Username          | Password                 | Can do                                                     |
 | ------- | ----------------- | ------------------------ | ---------------------------------------------------------- |
@@ -53,8 +51,7 @@ These are public test accounts. Change both passwords before the event (26 Nov),
 
 Both roles can open `/order`, `/queue` and `/menu`. Baristas can change
 availability only; prices and deactivation require admin. `/report` and its CSV
-export require admin, including direct API requests. The queue currently shows
-a signed-in placeholder until F4–F6 are implemented. `/board` and guest tracking
+export require admin, including direct API requests. `/board` and guest tracking
 links remain public.
 
 ### Staff sessions (F17)
@@ -195,7 +192,8 @@ npx next dev -p 3000 --experimental-https --experimental-https-key certificates/
 
 1. **Take Order (`/order`):** Select drinks and options, enter the guest's first name (and optional mobile number with consent), collect payment on the organiser's POS, and press **Submit order**.
 2. **Guest QR (`/o/track#<token>`):** Ask the guest to scan the receipt QR code (or click **Open order status** during testing). The guest page polls every 3 seconds and displays a persistent pickup banner with the order number when marked **Ready**.
-3. **Prepare & Hand Off (`/queue` & `/board`):** Baristas advance orders from **Queued** → **Preparing** → **Ready** → **Collected**. Orders marked **Ready** appear immediately on `/board`.
+3. **Prepare & Hand Off (`/queue` & `/board`):** Baristas advance orders from **Queued** → **Preparing** → **Ready** → **Collected**. Orders marked **Ready** appear on `/board` within about 3 seconds.
+4. **Cancel:** On `/queue`, **Cancel order** removes an uncollected order after a confirmation. It leaves the queue and board, the guest page shows "Cancelled", and daily totals exclude it (the CSV keeps it marked). Refund any payment on the POS. Cancelling needs a connection.
 
 ### Daily Reset Between Event Days (F19)
 
@@ -303,8 +301,6 @@ To run SQL regression tests (`supabase/tests/*.sql`), execute them against a dis
 
 ---
 
-## Deployment
-
 ## Pickup scanner (F20)
 
 Apply `supabase/migrations/20261108000000_collection_scanner.sql` and run `supabase/tests/collection_scanner.sql` against a disposable database to check it.
@@ -319,7 +315,7 @@ A customer holds up the QR on their tracking page. Green means the order is now 
 
 While online, the scanner keeps a copy of today's Ready orders (hashed codes only). When the connection drops, a code in that copy still shows green and is saved on the laptop, then sent automatically once back online. A code not in the copy shows amber. A saved scan the server rejects is listed under **Needs review** on `/scan`; check that order on `/queue`, then dismiss it.
 
-## Daily reset
+## Deployment
 
 ### Applying Database Migrations
 

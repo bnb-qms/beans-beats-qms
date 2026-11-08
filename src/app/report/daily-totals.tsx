@@ -66,11 +66,7 @@ export function DailyTotalsReport() {
       }
     } catch (cause) {
       if (mounted.current)
-        setExportError(
-          cause instanceof Error
-            ? cause.message
-            : "Cannot export sales. Try again.",
-        );
+        setExportError(staffMessage(cause, "Cannot export sales. Try again."));
     } finally {
       if (mounted.current) setExporting(false);
     }

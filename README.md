@@ -5,6 +5,7 @@ Web-based order and pickup queue management system for the **Beans&Beats** chari
 |                       |                                              |
 | --------------------- | -------------------------------------------- |
 | **Live app**          | https://beans-beats-qms.vercel.app           |
+| **Demo video**        | https://youtu.be/NWzN4y9Nonw                 |
 | **Technical summary** | [docs/tech-summary.md](docs/tech-summary.md) |
 | **Test logins**       | [below](#test-logins)                        |
 
@@ -36,6 +37,7 @@ Beans&Beats is operating a charity coffee booth at Christmas Together 2026, an e
 ## Demo
 
 - **Live Application:** [https://beans-beats-qms.vercel.app](https://beans-beats-qms.vercel.app)
+- **Demo Video (3 min):** [https://youtu.be/NWzN4y9Nonw](https://youtu.be/NWzN4y9Nonw)
 - **Technical Summary:** [docs/tech-summary.md](docs/tech-summary.md)
 
 ### Test logins

@@ -40,6 +40,10 @@ Win confirmed during F14 planning: export one row per order line, including canc
 
 Henry (F19 owner) changed F19 in PR #39: a new event day starts automatically at midnight Singapore time, using the existing per-day order numbers and today-only queue and board. The admin "Start new day" button, its uncollected-order dialog and the reset audit record are dropped. Staff follow the README end-of-day and next-morning checks instead, which also cover screens that were offline at midnight (F16). The F18 clean-up includes the current day only after every device has synced and been cleared, so late-synced offline orders are included.
 
+### F20 collection scanner — 7 Nov 2026
+
+Henry owns F20, which replaces the 7 Nov "Collection QR is deferred" note. The guest's tracking QR doubles as the collection QR: a customer-facing laptop on `/scan` reads it and marks Ready orders Collected. Offline, the scanner confirms from a hashed local copy of Ready orders and syncs later; anything it cannot confirm goes to the barista, whose "Mark collected" button stays. Green and amber are scanner-only result colours; `signal` stays READY-only.
+
 ## Hard requirements (from the brief)
 
 - Runs in a browser on tablets and guests' phones. No app to download, no customer account.

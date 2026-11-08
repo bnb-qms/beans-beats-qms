@@ -35,6 +35,9 @@
   --color-hair: #d4d4d4;
   /* READY only: the guest's ready screen, the board, ready cards in the queue. */
   --color-signal: #ff4d00;
+  /* F20 scanner results only: collected (green) and see-the-barista (amber). */
+  --color-collected: #146c2e;
+  --color-check: #ffb020;
   /* Destructive actions and form errors. Never used for READY. */
   --color-error: #b3261e;
 

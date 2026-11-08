@@ -5,9 +5,13 @@ import { GuestStatusView } from "./guest-status";
 import { initialGuestState, type GuestTrackingState } from "./watch-order";
 import type { GuestOrder } from "@/lib/guest-order";
 
-function renderState(result: GuestTrackingState, sample = false) {
+function renderState(
+  result: GuestTrackingState,
+  sample = false,
+  qr: string | null = null,
+) {
   return renderToStaticMarkup(
-    createElement(GuestStatusView, { result, sample, onRefresh() {} }),
+    createElement(GuestStatusView, { result, sample, qr, onRefresh() {} }),
   );
 }
 
@@ -23,8 +27,9 @@ function orderState(status: GuestOrder["status"]): GuestTrackingState {
 function render(
   status: "ready" | "preparing" | "collected" | "cancelled",
   reconnecting = false,
+  qr: string | null = null,
 ) {
-  return renderState({ ...orderState(status), reconnecting });
+  return renderState({ ...orderState(status), reconnecting }, false, qr);
 }
 
 it("shows a persistent, accessible Ready message with the actual pickup number", () => {
@@ -111,4 +116,15 @@ it("keeps the privacy notice visible in every guest state", () => {
       "deleted within 30 days after the event ends on 29 November 2026",
     );
   }
+});
+
+it.each([
+  ["preparing", true],
+  ["ready", true],
+  ["collected", false],
+  ["cancelled", false],
+] as const)("shows the collection QR for %s: %s", (status, shown) => {
+  const html = render(status, false, "data:image/png;base64,QR");
+  expect(html.includes("data:image/png;base64,QR")).toBe(shown);
+  expect(html.includes("Show this QR at the pickup screen")).toBe(shown);
 });

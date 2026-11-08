@@ -197,6 +197,12 @@ export function StaffWorkspace({
             </Link>
             <Link
               className="inline-flex min-h-tap items-center underline"
+              href="/scan"
+            >
+              Pickup scanner
+            </Link>
+            <Link
+              className="inline-flex min-h-tap items-center underline"
               href="/menu"
             >
               Menu controls

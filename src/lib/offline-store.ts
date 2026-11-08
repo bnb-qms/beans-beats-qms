@@ -6,6 +6,7 @@ import {
   type Receipt,
 } from "@/lib/order";
 import type { PendingStatusUpdate, QueueOrder } from "@/lib/queue";
+import type { ReadyCode } from "@/lib/scan";
 import type { Staff } from "@/lib/staff-server";
 
 export type PendingOrder = {
@@ -22,6 +23,23 @@ export type SyncedOrder = {
   receipt: Receipt;
 };
 
+/** F20: a collection scan saved on the scanner laptop until the server confirms it. */
+export type PendingScan = {
+  code: string;
+  staffId: string;
+  label: string;
+  scannedAt: number;
+  error?: string;
+  needsReview?: boolean;
+};
+
+/** F20: the scanner's copy of today's Ready orders, with hashed tracking codes. */
+export type ReadyCopy = {
+  staffId: string;
+  orders: ReadyCode[];
+  savedAt: number;
+};
+
 type Snapshot = {
   staffId: string;
   staff: Staff;
@@ -36,6 +54,8 @@ class OfflineStore extends Dexie {
   snapshots!: Table<Snapshot, string>;
   pendingOrders!: Table<PendingOrder, string>;
   syncedOrders!: Table<SyncedOrder, string>;
+  pendingScans!: Table<PendingScan, string>;
+  readyCopies!: Table<ReadyCopy, string>;
 
   constructor() {
     super("beans-beats-offline");
@@ -47,6 +67,13 @@ class OfflineStore extends Dexie {
       snapshots: "staffId",
       pendingOrders: "requestId, staffId",
       syncedOrders: "requestId, staffId",
+    });
+    this.version(3).stores({
+      snapshots: "staffId",
+      pendingOrders: "requestId, staffId",
+      syncedOrders: "requestId, staffId",
+      pendingScans: "code, staffId",
+      readyCopies: "staffId",
     });
   }
 }

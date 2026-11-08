@@ -1,5 +1,5 @@
-const CACHE = "beans-beats-shell-v1";
-const SCREENS = new Set(["/order", "/queue", "/menu", "/board"]);
+const CACHE = "beans-beats-shell-v2";
+const SCREENS = new Set(["/order", "/queue", "/scan", "/menu", "/board"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -51,3 +51,15 @@ These come from Vercel's Web Interface Guidelines; most are already handled in `
 - Animate only `transform`, `opacity` and colours. Respect reduced motion (done globally). No scroll animations, parallax or fade-ins.
 - Full-screen pages (board, guest page) pad for phone notches with `env(safe-area-inset-*)`. The board sets `themeColor` to black and `color-scheme: dark`.
 - Staff cards stay still while baristas tap; only the card that changed flashes.
+
+## Composition and spacing
+
+The frontend borrows compact navigation, consistent gutters, ruled rows and editorial hierarchy from [Brain Dead](https://wearebraindead.com/), within the existing Beans&Beats identity. Keep BB Heros, the 17px body, uppercase headlines, large pickup numbers and totals, square panels and existing token values. No campaign imagery, decorative motion or new component system.
+
+- Use `staff-gutters` for 16px horizontal gutters below the existing `sm` breakpoint and 32px above it. Keep the existing maximum widths. Board and guest safe-area padding takes precedence.
+- Use an 8px rhythm: 16px between cards, 24px between related groups and 32px between major sections; cards have 16–24px padding.
+- `page-intro` groups an eyebrow, one headline and nearby connection metadata, wraps naturally, and has 32px vertical padding. Secondary operational metadata uses `eyebrow`; drink names, quantities, prices and action labels retain their readable sizes.
+- StaffWorkspace keeps the brand and account actions above a wrapping navigation row in normal flow. `staff-nav-link` is at least 52px tall. The current route has `aria-current="page"`, a paper background and a black bottom rule. Navigation uses neutral tokens; sign-out remains a separate action.
+- Keep order-entry drinks in the existing responsive grid and guest/total sidebar at `lg`. Price columns do not shrink. Menu rows align names with prices above consistent action columns. Queue cards grow with content and group their actions at the bottom; never give them a clipping fixed height.
+- Global offline and pending/synced-order notices use `panel`, `hair` and `ink`, retaining their wording and announcement semantics. READY uses `signal`; errors and destructive actions use `error`. The existing orange keyboard-focus outline is preserved.
+- Keep Button's immediate 75ms press feedback, reduced-motion support, input labels, disabled states, confirmations and live regions. No new entrance or card-movement animations.

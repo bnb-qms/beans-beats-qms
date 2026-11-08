@@ -18,30 +18,30 @@ const testLogins = [
 
 export default function Home() {
   return (
-    <main className="mx-auto w-full max-w-5xl px-[clamp(16px,2.5vw,32px)] py-10">
+    <main className="staff-gutters mx-auto w-full max-w-5xl py-8">
       <p className="eyebrow">Christmas Together 2026</p>
       <h1 className="display mt-2">Beans&amp;Beats Queue</h1>
-      <ul className="mt-10 grid gap-x-6 sm:grid-cols-2">
+      <ul className="mt-8 grid gap-x-8 sm:grid-cols-2">
         {modules.map((m) => (
           <li key={m.name} className="rule">
             {m.href ? (
               <Link
                 href={m.href}
-                className="flex min-h-tap items-baseline justify-between gap-4 py-4 text-xl font-bold hover:underline"
+                className="grid min-h-tap grid-cols-[minmax(0,1fr)_8rem] items-baseline gap-4 py-4 text-xl font-bold hover:underline"
               >
                 {m.name}
-                <span className="eyebrow">{m.who}</span>
+                <span className="eyebrow text-right">{m.who}</span>
               </Link>
             ) : (
-              <p className="flex min-h-tap items-baseline justify-between gap-4 py-4 text-xl font-bold">
+              <p className="grid min-h-tap grid-cols-[minmax(0,1fr)_8rem] items-baseline gap-4 py-4 text-xl font-bold">
                 {m.name}
-                <span className="eyebrow">{m.who}</span>
+                <span className="eyebrow text-right">{m.who}</span>
               </p>
             )}
           </li>
         ))}
       </ul>
-      <section className="mt-12 bg-panel p-6" aria-labelledby="try-it">
+      <section className="mt-8 bg-panel p-4 sm:p-6" aria-labelledby="try-it">
         <h2 id="try-it" className="section-title">
           Try it: test logins
         </h2>
@@ -49,7 +49,7 @@ export default function Home() {
           {testLogins.map((login) => (
             <div key={login.username}>
               <dt className="eyebrow">{login.role}</dt>
-              <dd className="mt-1">
+              <dd className="mt-2 break-words">
                 Username <code className="font-bold">{login.username}</code>
                 <br />
                 Password{" "}
@@ -58,7 +58,7 @@ export default function Home() {
             </div>
           ))}
         </dl>
-        <p className="mt-5">
+        <p className="mt-6">
           Take an order on the Order screen and scan its receipt QR with your
           phone to follow it. Then move it to Ready on the Barista queue and
           watch the Ready board and your phone update. Sign out before switching

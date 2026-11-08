@@ -98,12 +98,12 @@ export function MenuControls({ staff }: { staff: Staff }) {
   }
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4 py-8">
+      <div className="page-intro">
         <div>
           <p className="eyebrow">Menu / 05</p>
           <h1 className="headline mt-2">Menu controls</h1>
         </div>
-        <p className="text-muted" role="status">
+        <p className="eyebrow max-w-xl" role="status">
           {connected
             ? "Connected · saved changes reach order screens"
             : "Offline · changes paused"}
@@ -120,7 +120,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
       )}
       <div aria-live="polite">
         {notice && (
-          <p className="mb-5 border-l-4 border-ink bg-panel p-4">{notice}</p>
+          <p className="mb-6 border-l-4 border-ink bg-panel p-4">{notice}</p>
         )}
       </div>
       {!menu && (
@@ -128,7 +128,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
           Retry menu
         </Button>
       )}
-      <div className="grid gap-8 lg:grid-cols-[1fr_23rem]">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]">
         <div>
           {(["drink", "option"] as const).map((kind) => (
             <section key={kind} className="mb-8">
@@ -143,13 +143,13 @@ export function MenuControls({ staff }: { staff: Staff }) {
                     return (
                       <article
                         key={item.id}
-                        className="flex flex-wrap items-center justify-between gap-4 py-4"
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 py-4"
                       >
                         <div className="min-w-0">
-                          <h3 className="text-xl font-bold capitalize">
+                          <h3 className="break-words text-xl font-bold capitalize">
                             {item.name}
                           </h3>
-                          <p className="text-sm text-muted">
+                          <p className="eyebrow">
                             {!active
                               ? "Inactive"
                               : item.is_available
@@ -159,11 +159,11 @@ export function MenuControls({ staff }: { staff: Staff }) {
                                   : "Unavailable"}
                           </p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-4">
-                          <span className="numeral min-w-24 text-right text-xl font-bold">
-                            {kind === "option" && "+"}
-                            {formatPrice(cents(priceOf(item)))}
-                          </span>
+                        <span className="numeral text-right text-xl font-bold">
+                          {kind === "option" && "+"}
+                          {formatPrice(cents(priceOf(item)))}
+                        </span>
+                        <div className="col-span-2 grid grid-cols-2 gap-4 xl:grid-cols-3">
                           {canChangeMenu(staff.role, "availability") &&
                             active && (
                               <Button
@@ -250,7 +250,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
           ref={panel}
           tabIndex={-1}
           aria-label="Selected menu action"
-          className="rule bg-panel p-6 lg:sticky lg:top-6 lg:self-start"
+          className="rule min-w-0 bg-panel p-4 sm:p-6 lg:sticky lg:top-6 lg:self-start"
         >
           {edit ? (
             <form
@@ -265,7 +265,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
               <h2 className="mt-2 text-2xl font-bold capitalize">
                 {edit.name}
               </h2>
-              <label className="mt-5 grid gap-2 font-bold">
+              <label className="mt-6 grid gap-2 font-bold">
                 New price (SGD)
                 <input
                   className={`${inputClass} numeral`}
@@ -293,7 +293,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                       : "Unavailable"}
                   </p>
                   <Button
-                    className="mt-3"
+                    className="mt-4"
                     disabled={busy || !current}
                     onClick={() => {
                       if (current)
@@ -304,13 +304,13 @@ export function MenuControls({ staff }: { staff: Staff }) {
                   </Button>
                 </div>
               )}
-              <p className="my-5 text-muted">
+              <p className="my-6 text-muted">
                 {edit.kind === "option"
                   ? "Applies to every drink offering this option."
                   : "Updates new order pricing."}{" "}
                 Past orders are unchanged.
               </p>
-              <div className="grid gap-3">
+              <div className="grid gap-4">
                 <Button
                   variant="primary"
                   type="submit"
@@ -334,7 +334,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
               <h2 className="mt-2 text-2xl font-bold capitalize">
                 {availability.name}
               </h2>
-              <p className="my-5">
+              <p className="my-6">
                 Set this {availability.kind === "drink" ? "drink" : "option"} to{" "}
                 <strong>
                   {availability.value
@@ -357,7 +357,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                     Review before applying your choice.
                   </p>
                   <Button
-                    className="mt-3"
+                    className="mt-4"
                     disabled={busy || !current}
                     onClick={() => {
                       if (current)
@@ -371,7 +371,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                   </Button>
                 </div>
               )}
-              <div className="grid gap-3">
+              <div className="grid gap-4">
                 <Button
                   variant="primary"
                   disabled={
@@ -400,7 +400,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                 {activeChange.value ? "Reactivate" : "Deactivate"}{" "}
                 {activeChange.name}?
               </h2>
-              <p className="my-5">
+              <p className="my-6">
                 {activeChange.value
                   ? "This drink will return to the active menu with its previous price and availability. If it was sold out, mark it available separately when restocked."
                   : "This drink will be hidden from new orders. Existing orders can still be prepared and collected, and all historical prices and quantities are retained. This does not delete the drink."}
@@ -412,7 +412,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                     confirming.
                   </p>
                   <Button
-                    className="mt-3"
+                    className="mt-4"
                     disabled={busy || !current}
                     onClick={() => {
                       if (current)
@@ -426,7 +426,7 @@ export function MenuControls({ staff }: { staff: Staff }) {
                   </Button>
                 </div>
               )}
-              <div className="grid gap-3">
+              <div className="grid gap-4">
                 <Button
                   variant={activeChange.value ? "primary" : "danger"}
                   disabled={

@@ -111,10 +111,42 @@
 }
 
 @utility section-title {
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 3px solid var(--color-ink);
   font-size: 1.15rem;
   font-weight: 700;
+}
+
+@utility staff-gutters {
+  padding-inline: 16px;
+  @media (min-width: 40rem) {
+    padding-inline: 32px;
+  }
+}
+
+@utility page-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding-block: 32px;
+}
+
+@utility staff-nav-link {
+  display: inline-flex;
+  min-height: var(--spacing-tap);
+  align-items: center;
+  padding: 8px 16px;
+  border-bottom: 3px solid transparent;
+  font-weight: 700;
+  &[aria-current="page"] {
+    border-color: var(--color-ink);
+    background: var(--color-paper);
+  }
+  &:active {
+    background: var(--color-hair);
+  }
 }
 
 @utility eyebrow {

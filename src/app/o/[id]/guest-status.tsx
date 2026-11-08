@@ -80,11 +80,11 @@ export function GuestStatusView({
       }}
     >
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-        <header className="flex flex-wrap justify-between gap-3 border-b-[3px] border-ink pb-4">
+        <header className="flex flex-wrap justify-between gap-4 border-b-[3px] border-ink pb-4">
           <p className="eyebrow">Beans&amp;Beats / Your order</p>
           {sample && <span className="eyebrow">Sample data</span>}
         </header>
-        <section className="py-10" aria-live="polite" aria-atomic="true">
+        <section className="py-8" aria-live="polite" aria-atomic="true">
           {order && status ? (
             <>
               <p className="eyebrow">Pickup number</p>
@@ -136,7 +136,7 @@ export function GuestStatusView({
             </>
           )}
         </section>
-        <div className="mb-5 text-sm">
+        <div className="mb-6 text-sm">
           {result.reconnecting && (
             <p role="status" className="mb-2 font-bold">
               Reconnecting — status may be out of date
@@ -163,7 +163,7 @@ export function GuestStatusView({
             {result.kind === "error" ? "Retry status" : "Refresh status"}
           </Button>
         )}
-        <footer className="mt-auto border-t-[3px] border-ink pt-5 text-sm">
+        <footer className="mt-auto border-t-[3px] border-ink pt-4 text-sm">
           <h2 className="font-bold">Your privacy</h2>
           <p className="mt-2">
             If you provide a first name, we use it to prepare and identify your

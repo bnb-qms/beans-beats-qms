@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   useEffect,
   useRef,
@@ -47,6 +48,7 @@ export function StaffWorkspace({
 }: {
   children: (staff: Staff) => ReactNode;
 }) {
+  const pathname = usePathname();
   const [staff, setStaff] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -179,55 +181,51 @@ export function StaffWorkspace({
     }
   }
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b-[3px] border-ink pb-4">
-        <Link href="/" className="text-xl font-bold tracking-tight">
+    <main className="staff-gutters mx-auto w-full max-w-7xl py-6">
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-b-[3px] border-ink pb-4">
+        <Link
+          href="/"
+          className="inline-flex min-h-tap items-center text-xl font-bold tracking-tight"
+        >
           BEANS&amp;BEATS / STAFF
         </Link>
         {staff && !loading && (
-          <nav
-            aria-label="Staff workspace"
-            className="flex flex-wrap items-center gap-4"
-          >
-            <Link
-              className="inline-flex min-h-tap items-center underline"
-              href="/order"
+          <>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-2">
+              <span className="eyebrow wrap-anywhere">
+                {staff.username} · {staff.role}
+              </span>
+              <Button variant="quiet" onClick={signOut}>
+                Sign out
+              </Button>
+            </div>
+            <nav
+              aria-label="Staff workspace"
+              className="w-full border border-hair bg-panel"
             >
-              Take orders
-            </Link>
-            <Link
-              className="inline-flex min-h-tap items-center underline"
-              href="/queue"
-            >
-              Barista queue
-            </Link>
-            <Link
-              className="inline-flex min-h-tap items-center underline"
-              href="/scan"
-            >
-              Pickup scanner
-            </Link>
-            <Link
-              className="inline-flex min-h-tap items-center underline"
-              href="/menu"
-            >
-              Menu controls
-            </Link>
-            {staff.role === "admin" && (
-              <Link
-                className="inline-flex min-h-tap items-center underline"
-                href="/report"
-              >
-                Daily report
-              </Link>
-            )}
-            <span className="eyebrow">
-              {staff.username} · {staff.role}
-            </span>
-            <Button variant="quiet" onClick={signOut}>
-              Sign out
-            </Button>
-          </nav>
+              <ul className="flex flex-wrap">
+                {[
+                  ["/order", "Take orders"],
+                  ["/queue", "Barista queue"],
+                  ["/scan", "Pickup scanner"],
+                  ["/menu", "Menu controls"],
+                  ...(staff.role === "admin"
+                    ? [["/report", "Daily report"]]
+                    : []),
+                ].map(([href, label]) => (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      aria-current={pathname === href ? "page" : undefined}
+                      className="staff-nav-link"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </>
         )}
       </header>
       {error && (
@@ -245,13 +243,13 @@ export function StaffWorkspace({
       ) : staff ? (
         <section key={`${staff.id}:${staff.role}`}>{children(staff)}</section>
       ) : (
-        <section className="mx-auto max-w-md py-12">
+        <section className="mx-auto max-w-md py-8">
           <p className="eyebrow">Staff workspace</p>
           <h1 className="headline mt-2">Staff sign-in</h1>
           <p className="my-6 text-muted">
             Use the staff account provided by your booth lead.
           </p>
-          <form onSubmit={signIn} className="grid gap-5">
+          <form onSubmit={signIn} className="grid gap-6">
             <label className="grid gap-2 font-bold">
               Username
               <input

@@ -99,12 +99,12 @@ export function BaristaQueueView({
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4 py-8">
+      <div className="page-intro">
         <div>
           <p className="eyebrow">Queue / 02</p>
           <h1 className="headline mt-2">Barista queue</h1>
         </div>
-        <p className="text-muted" role="status">
+        <p className="eyebrow max-w-xl" role="status">
           {connected
             ? unsyncedCount > 0
               ? `Connected · syncing ${unsyncedCount} offline update${unsyncedCount === 1 ? "" : "s"}…`
@@ -122,7 +122,7 @@ export function BaristaQueueView({
       {conflicts.length > 0 && (
         <section
           aria-label="Synchronization conflicts"
-          className="mb-6 space-y-3"
+          className="mb-6 space-y-4"
         >
           {conflicts.map((conflict) => (
             <div
@@ -138,7 +138,7 @@ export function BaristaQueueView({
               <p className="mt-1 text-sm">{conflict.conflict}</p>
               {onDismissConflict && (
                 <Button
-                  className="mt-3"
+                  className="mt-4"
                   onClick={() => onDismissConflict(conflict.orderId)}
                 >
                   Dismiss conflict
@@ -177,12 +177,12 @@ export function BaristaQueueView({
                 key={order.id}
                 className={
                   order.status === "ready"
-                    ? "animate-arrive flex flex-col justify-between border-t-[6px] border-signal bg-panel p-4"
-                    : "rule flex flex-col justify-between bg-panel p-4"
+                    ? "animate-arrive flex min-w-0 flex-col border-t-[6px] border-signal bg-panel p-4"
+                    : "rule flex min-w-0 flex-col bg-panel p-4"
                 }
               >
                 <div>
-                  <div className="flex items-baseline justify-between gap-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-4">
                     <p className="numeral text-5xl font-bold">
                       {order.order_number}
                     </p>
@@ -200,9 +200,9 @@ export function BaristaQueueView({
                   <p className="mt-1 truncate text-xl font-bold">
                     {order.customer_first_name}
                   </p>
-                  <ul className="mt-3 space-y-1">
+                  <ul className="mt-4 space-y-1">
                     {order.items.map((item) => (
-                      <li key={item.id}>
+                      <li key={item.id} className="wrap-anywhere">
                         <span className="numeral font-bold">
                           {item.quantity}×
                         </span>{" "}
@@ -211,30 +211,37 @@ export function BaristaQueueView({
                     ))}
                   </ul>
                 </div>
-                {actionLabel && (
-                  <Button
-                    variant={order.status === "ready" ? "secondary" : "primary"}
-                    block
-                    className="mt-4"
-                    disabled={isUpdating || !pendingReady}
-                    onClick={() => onAdvance?.(order)}
-                  >
-                    {isUpdating ? "Updating…" : actionLabel}
-                  </Button>
-                )}
-                {onCancel && (
-                  // Cancelling needs the server, so it is off while offline or while a change is waiting to sync.
-                  <Button
-                    variant="quiet"
-                    className="mt-2 self-center text-sm"
-                    disabled={
-                      isUpdating || !connected || isPendingSync || !pendingReady
-                    }
-                    onClick={() => onCancel(order)}
-                  >
-                    Cancel order
-                  </Button>
-                )}
+                <div className="mt-auto pt-4">
+                  {actionLabel && (
+                    <Button
+                      variant={
+                        order.status === "ready" ? "secondary" : "primary"
+                      }
+                      block
+                      disabled={isUpdating || !pendingReady}
+                      onClick={() => onAdvance?.(order)}
+                    >
+                      {isUpdating ? "Updating…" : actionLabel}
+                    </Button>
+                  )}
+                  {onCancel && (
+                    // Cancelling needs the server, so it is off while offline or while a change is waiting to sync.
+                    <Button
+                      variant="quiet"
+                      block
+                      className="mt-2 text-error"
+                      disabled={
+                        isUpdating ||
+                        !connected ||
+                        isPendingSync ||
+                        !pendingReady
+                      }
+                      onClick={() => onCancel(order)}
+                    >
+                      Cancel order
+                    </Button>
+                  )}
+                </div>
               </article>
             );
           })}

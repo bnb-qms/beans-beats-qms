@@ -68,4 +68,52 @@ begin
   for i in 1..10 loop perform pg_temp.assert_true(public.counter_login_attempt(staff_id::text), 'initial login attempts allowed'); end loop;
   perform pg_temp.assert_true(not public.counter_login_attempt(staff_id::text), 'login attempts throttled');
 end $$;
+
+-- US3: one order and one daily number under retry, exact price snapshots,
+-- and rejection of totals that no longer match the menu.
+do $$
+declare
+  staff_id uuid := gen_random_uuid();
+  mocha uuid := gen_random_uuid();
+  iced uuid := gen_random_uuid();
+  request_a uuid := gen_random_uuid();
+  request_b uuid := gen_random_uuid();
+  items_a jsonb;
+  items_b jsonb;
+  receipt_a jsonb;
+  receipt_b jsonb;
+  day date := (now() at time zone 'Asia/Singapore')::date;
+  number_before integer;
+begin
+  insert into public.staff (id, username, password_hash, role)
+    values (staff_id, 'numbering_test_' || staff_id, 'not-a-login-hash', 'barista');
+  insert into public.menu_items (id, name, base_price) values (mocha, 'mocha', 12.50);
+  insert into public.add_ons (id, name, price) values (iced, 'iced', 1.25);
+  select last_number into number_before from public.daily_order_counters where event_day = day;
+  number_before := coalesce(number_before, 0);
+  items_a := jsonb_build_array(jsonb_build_object('menu_item_id', mocha, 'quantity', 1, 'add_on_ids', jsonb_build_array(iced)));
+  items_b := jsonb_build_array(jsonb_build_object('menu_item_id', mocha, 'quantity', 2, 'add_on_ids', '[]'::jsonb));
+  -- Two distinct requests take consecutive daily numbers within one transaction.
+  receipt_a := public.counter_submit_order(staff_id, request_a, 'Ana', null, false, items_a, 1375);
+  receipt_b := public.counter_submit_order(staff_id, request_b, 'Ben', null, false, items_b, 2500);
+  perform pg_temp.assert_true((receipt_a->>'order_number')::int = number_before + 1, 'first order takes the next daily number');
+  perform pg_temp.assert_true((receipt_b->>'order_number')::int = number_before + 2, 'second order takes the following number');
+  perform pg_temp.assert_true((select count(*) = 2 from public.orders where created_by = staff_id), 'two orders for two distinct requests');
+  -- Retries return the original receipts without consuming another number.
+  perform pg_temp.assert_true(public.counter_submit_order(staff_id, request_a, 'Ana', null, false, items_a, 1375) = receipt_a, 'retry A returns its original receipt');
+  perform pg_temp.assert_true(public.counter_submit_order(staff_id, request_b, 'Ben', null, false, items_b, 2500) = receipt_b, 'retry B returns its original receipt');
+  perform pg_temp.assert_true((select last_number from public.daily_order_counters where event_day = day) = number_before + 2, 'retries do not advance the daily counter');
+  -- The recorded prices survive later menu changes.
+  perform pg_temp.assert_true((select unit_price from public.order_items where order_id = request_a) = 12.50, 'drink price snapshot');
+  perform pg_temp.assert_true((select a.unit_price from public.order_item_add_ons a join public.order_items i on i.id = a.order_item_id where i.order_id = request_a) = 1.25, 'add-on price snapshot');
+  update public.menu_items set base_price = 14.75 where id = mocha;
+  update public.add_ons set price = 2.00 where id = iced;
+  perform pg_temp.assert_true((select total_amount from public.orders where id = request_a) = 13.75, 'stored total keeps the recorded price');
+  perform pg_temp.assert_true((select unit_price from public.order_items where order_id = request_a) = 12.50, 'order line keeps the snapshot after a menu change');
+  perform pg_temp.assert_true(public.counter_receipt(request_a) = receipt_a, 'receipt unchanged after a menu change');
+  -- Submissions whose total no longer matches the menu are rejected.
+  perform pg_temp.expect_error(format('select public.counter_submit_order(%L,%L,%L,null,false,%L,1374)', staff_id, gen_random_uuid(), 'Cid', items_a), 'BB_PRICE_CHANGED');
+  perform pg_temp.expect_error(format('select public.counter_submit_order(%L,%L,%L,null,false,%L,1375)', staff_id, gen_random_uuid(), 'Cid', items_a), 'BB_PRICE_CHANGED');
+  perform pg_temp.assert_true((select count(*) from public.orders where created_by = staff_id) = 2, 'rejected submissions create no order');
+end $$;
 rollback;

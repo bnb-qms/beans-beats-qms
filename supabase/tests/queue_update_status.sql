@@ -17,21 +17,25 @@ end $$;
 do $$
 declare
   barista_id uuid := gen_random_uuid();
+  counter_id uuid := gen_random_uuid();
   disabled_id uuid := gen_random_uuid();
   order_id uuid := gen_random_uuid();
+  second_order uuid := gen_random_uuid();
   today date := (now() at time zone 'Asia/Singapore')::date;
   result jsonb;
 begin
   insert into public.staff (id, username, password_hash, role)
-  values (barista_id, 'status_barista_' || barista_id, 'not-a-login-hash', 'barista');
+  values
+    (barista_id, 'status_barista_' || barista_id, 'not-a-login-hash', 'barista'),
+    (counter_id, 'status_counter_' || counter_id, 'not-a-login-hash', 'counter');
   insert into public.staff (id, username, password_hash, role, is_active)
   values (disabled_id, 'status_disabled_' || disabled_id, 'not-a-login-hash', 'barista', false);
 
   insert into public.orders (
-    id, event_day, order_number, customer_first_name,
+    id, event_day, order_number, customer_first_name, customer_mobile,
     status, total_amount, created_by, client_request_id, version
   )
-  values (order_id, today, 201, 'Mei', 'queued', 8, barista_id, order_id, 1);
+  values (order_id, today, 201, 'Mei', '91234567', 'queued', 8, barista_id, order_id, 1);
 
   -- Reject skipped stages from queued
   perform pg_temp.expect_error(
@@ -85,6 +89,42 @@ begin
   perform pg_temp.expect_error(
     format('select public.queue_update_status(%L, %L, 4, %L)', barista_id, order_id, 'ready'),
     'BB_INVALID_TRANSITION'
+  );
+
+  -- The update payload never exposes guest details or tracking secrets
+  perform pg_temp.assert_true(not (result ? 'customer_mobile'), 'mobile number is not exposed in the update payload');
+  perform pg_temp.assert_true(not (result ? 'customer_first_name'), 'customer name is not exposed in the update payload');
+  perform pg_temp.assert_true(not (result ? 'tracking_token'), 'tracking token is not exposed in the update payload');
+
+  -- Version race: a second tap with the same stale version conflicts,
+  -- and a retry with the refreshed version succeeds.
+  insert into public.orders (
+    id, event_day, order_number, customer_first_name, customer_mobile,
+    status, total_amount, created_by, client_request_id, version
+  )
+  values (second_order, today, 202, 'Dawn', '98765432', 'queued', 8, barista_id, second_order, 1);
+
+  result := public.queue_update_status(counter_id, second_order, 1, 'preparing');
+  perform pg_temp.assert_true(result->>'status' = 'preparing', 'counter role can advance orders');
+  perform pg_temp.expect_error(
+    format('select public.queue_update_status(%L, %L, 1, %L)', barista_id, second_order, 'preparing'),
+    'BB_CONFLICT'
+  );
+  result := public.queue_update_status(barista_id, second_order, 2, 'ready');
+  perform pg_temp.assert_true(result->>'status' = 'ready', 'retry with the refreshed version succeeds');
+
+  -- Unknown orders, unknown staff, and invalid versions are rejected
+  perform pg_temp.expect_error(
+    format('select public.queue_update_status(%L, %L, 1, %L)', barista_id, gen_random_uuid(), 'preparing'),
+    'BB_NOT_FOUND'
+  );
+  perform pg_temp.expect_error(
+    format('select public.queue_update_status(%L, %L, 1, %L)', gen_random_uuid(), second_order, 'ready'),
+    'BB_FORBIDDEN'
+  );
+  perform pg_temp.expect_error(
+    format('select public.queue_update_status(%L, %L, 0, %L)', barista_id, second_order, 'ready'),
+    'BB_INVALID'
   );
 
   -- Reject disabled or missing staff

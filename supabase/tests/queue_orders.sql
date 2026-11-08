@@ -18,6 +18,7 @@ do $$
 declare
   barista_id uuid := gen_random_uuid();
   admin_id uuid := gen_random_uuid();
+  counter_id uuid := gen_random_uuid();
   disabled_id uuid := gen_random_uuid();
   latte uuid := gen_random_uuid();
   espresso uuid := gen_random_uuid();
@@ -42,7 +43,8 @@ begin
   insert into public.staff (id, username, password_hash, role)
   values
     (barista_id, 'queue_barista_' || barista_id, 'not-a-login-hash', 'barista'),
-    (admin_id, 'queue_admin_' || admin_id, 'not-a-login-hash', 'admin');
+    (admin_id, 'queue_admin_' || admin_id, 'not-a-login-hash', 'admin'),
+    (counter_id, 'queue_counter_' || counter_id, 'not-a-login-hash', 'counter');
   insert into public.staff (id, username, password_hash, role, is_active)
   values (disabled_id, 'queue_disabled_' || disabled_id, 'not-a-login-hash', 'barista', false);
 
@@ -89,9 +91,45 @@ begin
   perform pg_temp.assert_true(not (result->0 ? 'tracking_token'), 'tracking token is not exposed in queue payload');
 
   perform pg_temp.assert_true(public.queue_orders(admin_id) = result, 'admin can also read queue orders');
+  perform pg_temp.assert_true(public.queue_orders(counter_id) = result, 'counter can also read queue orders');
   perform pg_temp.expect_error(format('select public.queue_orders(%L)', disabled_id), 'BB_FORBIDDEN');
+  perform pg_temp.expect_error(format('select public.queue_orders(%L)', gen_random_uuid()), 'BB_FORBIDDEN');
   perform pg_temp.expect_error('select public.queue_orders(null)', 'BB_FORBIDDEN');
   perform pg_temp.assert_true(not has_function_privilege('anon', 'public.queue_orders(uuid)', 'execute'), 'anon cannot call queue_orders');
   perform pg_temp.assert_true(not has_function_privilege('authenticated', 'public.queue_orders(uuid)', 'execute'), 'authenticated cannot call queue_orders');
+end $$;
+
+do $$
+declare
+  barista_id uuid := gen_random_uuid();
+  boundary_order uuid := gen_random_uuid();
+  today date := (now() at time zone 'Asia/Singapore')::date;
+  result jsonb;
+begin
+  delete from public.order_item_add_ons;
+  delete from public.order_items;
+  delete from public.orders;
+
+  insert into public.staff (id, username, password_hash, role)
+  values (barista_id, 'queue_day_barista_' || barista_id, 'not-a-login-hash', 'barista');
+  -- Singapore event day at 00:01, which is 16:01 UTC on the previous day.
+  insert into public.orders (
+    id, event_day, order_number, customer_first_name, status,
+    total_amount, created_by, client_request_id, created_at, version
+  )
+  values (
+    boundary_order, today, 1, 'Dawn', 'queued', 8, barista_id, boundary_order,
+    ((today + interval '1 minute') at time zone 'Asia/Singapore'), 1
+  );
+
+  perform pg_temp.assert_true(
+    ((select created_at from public.orders where id = boundary_order) at time zone 'UTC')::date <> today,
+    'fixture was created in the previous UTC calendar day'
+  );
+
+  result := public.queue_orders(barista_id);
+  perform pg_temp.assert_true(jsonb_array_length(result) = 1, 'an order is listed by its Singapore event day, not its UTC created day');
+  perform pg_temp.assert_true((result->0->>'id')::uuid = boundary_order, 'boundary order returned');
+  perform pg_temp.assert_true(result->0->'items' = '[]'::jsonb, 'an order without items returns an empty items array');
 end $$;
 rollback;

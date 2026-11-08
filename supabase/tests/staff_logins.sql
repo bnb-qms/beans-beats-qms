@@ -27,6 +27,11 @@ begin
     perform pg_temp.assert_true(public.counter_login_attempt(attempt_key), 'initial attempts allowed');
   end loop;
   perform pg_temp.assert_true(not public.counter_login_attempt(attempt_key), 'excess attempts denied');
+  -- Limits are per user: another account's attempts do not consume this quota.
+  perform pg_temp.assert_true(
+    public.counter_login_attempt(encode(extensions.digest('other_user_' || staff_id::text, 'sha256'), 'hex')),
+    'other user keeps their own limit');
+  perform pg_temp.assert_true(not public.counter_login_attempt(attempt_key), 'throttled user stays throttled');
   update public.counter_login_limits set window_start = now() - interval '16 minutes' where key = attempt_key;
   perform pg_temp.assert_true(public.counter_login_attempt(attempt_key), 'expired limit resets');
 end $$;

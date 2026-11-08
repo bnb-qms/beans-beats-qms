@@ -3,27 +3,33 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { GuestStatusView } from "./guest-status";
 import { initialGuestState, type GuestTrackingState } from "./watch-order";
+import type { GuestOrder } from "@/lib/guest-order";
+
+function renderState(
+  result: GuestTrackingState,
+  sample = false,
+  qr: string | null = null,
+) {
+  return renderToStaticMarkup(
+    createElement(GuestStatusView, { result, sample, qr, onRefresh() {} }),
+  );
+}
+
+function orderState(status: GuestOrder["status"]): GuestTrackingState {
+  return {
+    ...initialGuestState,
+    kind: "order",
+    order: { order_number: 12, event_day: "2026-11-07", status },
+    lastUpdated: Date.UTC(2026, 10, 7, 2),
+  };
+}
 
 function render(
   status: "ready" | "preparing" | "collected" | "cancelled",
   reconnecting = false,
   qr: string | null = null,
 ) {
-  const result: GuestTrackingState = {
-    ...initialGuestState,
-    kind: "order",
-    order: { order_number: 12, event_day: "2026-11-07", status },
-    lastUpdated: Date.UTC(2026, 10, 7, 2),
-    reconnecting,
-  };
-  return renderToStaticMarkup(
-    createElement(GuestStatusView, {
-      result,
-      sample: false,
-      qr,
-      onRefresh() {},
-    }),
-  );
+  return renderState({ ...orderState(status), reconnecting }, false, qr);
 }
 
 it("shows a persistent, accessible Ready message with the actual pickup number", () => {
@@ -54,6 +60,62 @@ it("keeps changing timestamps and reconnecting notices outside the Ready live re
   expect(liveRegion).not.toContain("Reconnecting");
   expect(html).toContain("Reconnecting — status may be out of date");
   expect(html).toContain('dateTime="2026-11-07T02:00:00.000Z"');
+});
+
+it("shows a neutral loading state without order data and disables the refresh", () => {
+  const html = renderState(initialGuestState);
+  expect(html).toContain("Loading order…");
+  expect(html).toContain("Checking your order’s confirmed status.");
+  expect(html).toContain('disabled=""');
+  expect(html).toContain("Refresh status");
+  expect(html).not.toContain("Pickup number");
+});
+
+it("offers a retry for a failed connection without technical details", () => {
+  const html = renderState({ ...initialGuestState, kind: "error" });
+  expect(html).toContain("Connection unavailable");
+  expect(html).toContain(
+    "We could not check your order. Retrying when connected.",
+  );
+  expect(html).toContain("Retry status");
+  expect(html).not.toContain('disabled=""');
+  expect(html).not.toContain("Pickup number");
+});
+
+it("tells guests with an unavailable or expired link to ask counter staff, with no retry", () => {
+  const html = renderState({ ...initialGuestState, kind: "unavailable" });
+  expect(html).toContain("Order unavailable");
+  expect(html).toContain(
+    "This tracking link is unavailable or has expired. Please check with counter staff.",
+  );
+  expect(html).not.toContain("<button");
+  expect(html).not.toContain("Pickup number");
+});
+
+it("labels the sample page and never claims live updates for it", () => {
+  const html = renderState(orderState("queued"), true);
+  expect(html).toContain("Sample data");
+  expect(html).not.toContain("Updates automatically");
+});
+
+it("says a live page updates automatically while visible", () => {
+  const html = renderState(orderState("queued"));
+  expect(html).toContain("Updates automatically while this page is visible.");
+  expect(html).not.toContain("Sample data");
+});
+
+it("keeps the privacy notice visible in every guest state", () => {
+  for (const html of [
+    renderState(initialGuestState),
+    renderState({ ...initialGuestState, kind: "error" }),
+    renderState({ ...initialGuestState, kind: "unavailable" }),
+    renderState(orderState("ready")),
+  ]) {
+    expect(html).toContain("Your privacy");
+    expect(html).toContain(
+      "deleted within 30 days after the event ends on 29 November 2026",
+    );
+  }
 });
 
 it.each([

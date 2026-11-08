@@ -10,6 +10,7 @@ end $$;
 do $$
 declare
   staff_id uuid := gen_random_uuid();
+  counter_id uuid := gen_random_uuid();
   drink_id uuid := gen_random_uuid();
   option_id uuid := gen_random_uuid();
   result jsonb;
@@ -29,5 +30,11 @@ begin
   perform pg_temp.expect_error(format('select public.counter_edit_menu(%L,%L,%L,4,%L)',staff_id,'drink',drink_id,'{"is_available":true}'),'BB_INACTIVE');
   perform pg_temp.expect_error(format('select public.counter_edit_menu(%L,%L,%L,4,%L)',staff_id,'drink',drink_id,'{"price_cents":900}'),'BB_FORBIDDEN');
   perform pg_temp.expect_error(format('select public.counter_edit_menu(%L,%L,%L,2,%L)',staff_id,'option',option_id,'{"is_available":"false"}'),'BB_INVALID');
+  result := public.counter_edit_menu(staff_id,'option',option_id,2,'{"is_available":true}');
+  perform pg_temp.assert_true((result->>'is_available')::boolean and (result->>'version')::integer = 3, 'option restocked at the current version');
+  perform pg_temp.expect_error(format('select public.counter_edit_menu(%L,%L,%L,1,%L)',staff_id,'option',option_id,'{"is_available":false}'),'BB_CONFLICT');
+  insert into public.staff(id,username,password_hash,role) values(counter_id,counter_id::text,'not-a-login-hash','counter');
+  perform pg_temp.expect_error(format('select public.counter_edit_menu(%L,%L,%L,3,%L)',counter_id,'option',option_id,'{"is_available":false}'),'BB_FORBIDDEN');
+  perform pg_temp.assert_true(not has_function_privilege('anon','public.counter_edit_menu(uuid,text,uuid,integer,jsonb)','execute'), 'anon cannot change availability');
 end $$;
 rollback;

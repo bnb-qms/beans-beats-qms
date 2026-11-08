@@ -10,6 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "bash scripts/test-db.sh",
+    "test:all": "bash scripts/test-all.sh",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -65,3 +65,26 @@ it("does not restore cached access when the server rejects the session", async (
   await vi.waitFor(() => expect(host.textContent).toContain("Staff sign-in"));
   expect(host.textContent).not.toContain("Account: admin");
 });
+
+it("keeps the cached account visible with an offline notice when the check fails", async () => {
+  await rememberStaff({ id: "staff-2", username: "barista", role: "barista" });
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+  await act(async () => {
+    root.render(
+      <StaffWorkspace>
+        {(staff) => <p>Account: {staff.username}</p>}
+      </StaffWorkspace>,
+    );
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  });
+  await vi.waitFor(() =>
+    expect(host.textContent).toContain(
+      "Offline · using previously verified staff access.",
+    ),
+  );
+  expect(host.textContent).toContain("Account: barista");
+  // The failure is announced as an alert, not a silent switch.
+  expect(host.querySelector('[role="alert"]')).not.toBeNull();
+});

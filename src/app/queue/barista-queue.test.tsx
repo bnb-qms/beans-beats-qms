@@ -202,6 +202,30 @@ describe("BaristaQueueView", () => {
     expect(html).not.toContain("Pending sync");
   });
 
+  it("shows no empty parentheses for an unnamed order conflict", () => {
+    const html = renderToStaticMarkup(
+      createElement(BaristaQueueView, {
+        orders: [sampleOrders[0]],
+        pendingUpdates: [
+          {
+            orderId: sampleOrders[0].id,
+            orderNumber: 14,
+            customerFirstName: "",
+            fromStatus: "queued",
+            status: "preparing",
+            expectedVersion: 1,
+            conflict: "Review the latest status.",
+          },
+        ],
+        connected: true,
+        error: "",
+        onRetry() {},
+      }),
+    );
+    expect(html).toContain("Conflict on order #14");
+    expect(html).not.toContain("Conflict on order #14 ()");
+  });
+
   it("keeps previously loaded orders visible with an offline notice when disconnected", () => {
     const html = renderToStaticMarkup(
       createElement(BaristaQueueView, {

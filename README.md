@@ -190,7 +190,7 @@ npx next dev -p 3000 --experimental-https --experimental-https-key certificates/
 
 ### Order Entry, Queue & Guest Tracking (F1, F4–F9)
 
-1. **Take Order (`/order`):** Select drinks and options, enter the guest's first name (and optional mobile number with consent), collect payment on the organiser's POS, and press **Submit order**.
+1. **Take Order (`/order`):** Select drinks and options, optionally enter the guest's first name (and mobile number with consent), collect payment on the organiser's POS, and press **Submit order**.
 2. **Guest QR (`/o/track#<token>`):** Ask the guest to scan the receipt QR code (or click **Open order status** during testing). The guest page polls every 3 seconds and displays a persistent pickup banner with the order number when marked **Ready**.
 3. **Prepare & Hand Off (`/queue` & `/board`):** Baristas advance orders from **Queued** → **Preparing** → **Ready** → **Collected**. Orders marked **Ready** appear on `/board` within about 3 seconds.
 4. **Cancel:** On `/queue`, **Cancel order** removes an uncollected order after a confirmation. It leaves the queue and board, the guest page shows "Cancelled", and daily totals exclude it (the CSV keeps it marked). Refund any payment on the POS. Cancelling needs a connection.

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/button";
-import { inputClass } from "@/components/staff-workspace";
+import { inputClass, staffMessage } from "@/components/staff-workspace";
 import { useMenu } from "@/components/use-menu";
 import {
   allowsMilk,
@@ -25,6 +25,8 @@ import {
 } from "@/lib/offline-store";
 
 type Attempt = { draft: Draft; totalCents: number };
+const validQuantity = (quantity: number) =>
+  Number.isInteger(quantity) && quantity >= 1 && quantity <= 100;
 type Saved = { draft: Draft; attempt: Attempt | null; receipt: Receipt | null };
 function emptyDraft(): Draft {
   return {
@@ -102,6 +104,10 @@ export function OrderEntry({ staff }: { staff: Staff }) {
     }
   }
   const draft = saved?.draft;
+  // An invalid quantity shows no total, so staff never key a wrong amount into the POS (#55).
+  const quantitiesValid = !!draft?.lines.every((line) =>
+    validQuantity(line.quantity),
+  );
   const total =
     draft && menu
       ? draft.lines.reduce((sum, line) => sum + lineTotal(line, menu), 0)
@@ -241,9 +247,10 @@ export function OrderEntry({ staff }: { staff: Staff }) {
         }
       }
       setMessage(
-        e instanceof Error
-          ? e.message
-          : "Order not confirmed. Retry this same submission; do not enter it again.",
+        staffMessage(
+          e,
+          "Order not confirmed. Retry this same submission; do not enter it again.",
+        ),
       );
     } finally {
       sending.current = false;
@@ -628,15 +635,15 @@ export function OrderEntry({ staff }: { staff: Staff }) {
                       {problem}
                     </p>
                   )}
-                  {(!Number.isInteger(line.quantity) ||
-                    line.quantity < 1 ||
-                    line.quantity > 100) && (
+                  {!validQuantity(line.quantity) && (
                     <p role="alert" className="mt-3 text-error">
                       Enter a whole-number quantity from 1 to 100.
                     </p>
                   )}
                   <p className="numeral mt-3 text-right font-bold">
-                    {menu ? formatPrice(lineTotal(line, menu)) : "—"}
+                    {menu && validQuantity(line.quantity)
+                      ? formatPrice(lineTotal(line, menu))
+                      : "—"}
                   </p>
                 </article>
               );
@@ -703,7 +710,11 @@ export function OrderEntry({ staff }: { staff: Staff }) {
           <div className="mt-6 border-t-[3px] border-ink pt-4">
             <p className="eyebrow">Enter into the separate POS</p>
             <p className="numeral my-2 text-5xl font-bold">
-              {formatPrice(saved.attempt?.totalCents ?? total)}
+              {saved.attempt
+                ? formatPrice(saved.attempt.totalCents)
+                : quantitiesValid
+                  ? formatPrice(total)
+                  : "—"}
             </p>
             <p className="mb-5 text-muted">
               Take payment first. Then submit this order to the barista queue.

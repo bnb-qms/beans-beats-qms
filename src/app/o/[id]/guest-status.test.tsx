@@ -66,3 +66,8 @@ it.each([
   expect(html.includes("data:image/png;base64,QR")).toBe(shown);
   expect(html.includes("Show this QR at the pickup screen")).toBe(shown);
 });
+
+it("keeps small labels readable on the orange Ready screen", () => {
+  expect(render("ready")).toContain("[&amp;_.eyebrow]:text-ink");
+  expect(render("preparing")).not.toContain("[&amp;_.eyebrow]:text-ink");
+});

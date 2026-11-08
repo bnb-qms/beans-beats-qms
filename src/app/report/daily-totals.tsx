@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
-import { inputClass, requestJson } from "@/components/staff-workspace";
+import {
+  inputClass,
+  requestJson,
+  staffMessage,
+} from "@/components/staff-workspace";
 import { formatPrice } from "@/lib/format-price";
 import {
   singaporeToday,
@@ -62,11 +66,7 @@ export function DailyTotalsReport() {
       }
     } catch (cause) {
       if (mounted.current)
-        setExportError(
-          cause instanceof Error
-            ? cause.message
-            : "Cannot export sales. Try again.",
-        );
+        setExportError(staffMessage(cause, "Cannot export sales. Try again."));
     } finally {
       if (mounted.current) setExporting(false);
     }
@@ -87,11 +87,7 @@ export function DailyTotalsReport() {
         })
         .catch((cause: unknown) => {
           if (current)
-            setError(
-              cause instanceof Error
-                ? cause.message
-                : "Cannot load daily totals.",
-            );
+            setError(staffMessage(cause, "Cannot load daily totals."));
         })
         .finally(() => {
           if (current) setLoading(false);

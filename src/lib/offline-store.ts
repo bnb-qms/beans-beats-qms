@@ -142,7 +142,6 @@ function isReceipt(value: unknown): value is Receipt {
     Number.isSafeInteger(receipt.order_number) &&
     receipt.order_number > 0 &&
     typeof receipt.customer_first_name === "string" &&
-    receipt.customer_first_name.length > 0 &&
     typeof receipt.event_day === "string" &&
     Array.isArray(receipt.items)
   );

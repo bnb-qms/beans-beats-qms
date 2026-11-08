@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     )
       throw new HttpError(
         400,
-        "Check the name, quantities, options and any mobile consent before submitting.",
+        "Check the quantities, options and any mobile consent before submitting.",
       );
     const d = input.draft as Draft;
     const { data, error } = await database().rpc("counter_submit_order", {
@@ -45,8 +45,7 @@ export async function POST(request: Request) {
           "A drink or option is unavailable. Your draft is retained. If payment was taken, reconcile it on the POS before changing the order.",
         BB_PRICE_CHANGED:
           "Prices changed before submission. Your draft is retained. Reconcile any POS payment with the updated total before submitting again.",
-        BB_INVALID:
-          "Check the name, quantities and options. Your draft is retained.",
+        BB_INVALID: "Check the order details. Your draft is retained.",
         BB_FORBIDDEN: "Staff access was revoked. Sign in again.",
       };
       const message = messages[error.message];

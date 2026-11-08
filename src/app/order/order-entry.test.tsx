@@ -209,6 +209,34 @@ it("confirms a paid order, shows the receipt with a private tracking link, and r
   expect(button("Submit order")!.disabled).toBe(true);
 });
 
+it("submits an order without a name and shows its pickup number", async () => {
+  fetchMock.mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        id: "order-2",
+        order_number: 13,
+        customer_first_name: "",
+        event_day: "2026-11-08",
+        total_amount: 8,
+        items: [],
+        tracking_url: null,
+        tracking_qr: null,
+        tracking_warning: null,
+      }),
+      { status: 200 },
+    ),
+  );
+  await render();
+  await click(button("Add latte")!);
+  expect(button("Submit order")!.disabled).toBe(false);
+  await click(button("Submit order")!);
+  await vi.waitFor(() => expect(host.textContent).toContain("Order received"));
+  expect(
+    JSON.parse(fetchMock.mock.calls[0][1].body as string).draft.firstName,
+  ).toBe("");
+  expect(host.textContent).toContain("#13");
+});
+
 it("shows the reason when the server rejects the order and keeps the draft", async () => {
   fetchMock.mockResolvedValue(
     new Response(

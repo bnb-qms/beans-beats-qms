@@ -166,10 +166,11 @@ export function GuestStatusView({
         <footer className="mt-auto border-t-[3px] border-ink pt-5 text-sm">
           <h2 className="font-bold">Your privacy</h2>
           <p className="mt-2">
-            We collect your first name to prepare and identify your order. It
-            appears with your pickup number on the public ready board. A mobile
-            number is optional and stored only with your consent for order
-            follow-up. No automatic SMS is sent.
+            If you provide a first name, we use it to prepare and identify your
+            order and show it with your pickup number on the public ready board.
+            Otherwise, the board shows only your pickup number. A mobile number
+            is optional and stored only with your consent for order follow-up.
+            No automatic SMS is sent.
           </p>
           <p className="mt-2">
             Names and mobile numbers are deleted within 30 days after the event

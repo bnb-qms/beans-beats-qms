@@ -266,7 +266,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
     }
     if (
       !window.confirm(
-        `Reconcile the ${formatPrice(order.attempt.totalCents)} POS payment for ${order.attempt.draft.firstName} before editing and resubmitting. Continue?`,
+        `Reconcile the ${formatPrice(order.attempt.totalCents)} POS payment for this order before editing and resubmitting. Continue?`,
       )
     )
       return;
@@ -289,7 +289,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
   async function discardRejected(order: PendingOrder) {
     if (
       !window.confirm(
-        `Discard ${order.attempt.draft.firstName}'s rejected order only after refunding the ${formatPrice(order.attempt.totalCents)} POS payment. Has the refund been completed?`,
+        `Discard this rejected order only after refunding the ${formatPrice(order.attempt.totalCents)} POS payment. Has the refund been completed?`,
       )
     )
       return;
@@ -305,7 +305,11 @@ export function OrderEntry({ staff }: { staff: Staff }) {
       <section className="mx-auto max-w-2xl py-10">
         <p className="eyebrow">Order received · {receipt.event_day}</p>
         <h1 className="display numeral mt-4">#{receipt.order_number}</h1>
-        <p className="mt-6 text-2xl font-bold">{receipt.customer_first_name}</p>
+        {receipt.customer_first_name && (
+          <p className="mt-6 text-2xl font-bold">
+            {receipt.customer_first_name}
+          </p>
+        )}
         <ul className="my-6 divide-y divide-hair">
           {receipt.items.map((item, index) => (
             <li className="py-3" key={index}>
@@ -405,7 +409,8 @@ export function OrderEntry({ staff }: { staff: Staff }) {
             >
               <p className="font-bold">
                 {order.needsReview ? "Needs review" : "Pending sync"}:{" "}
-                {order.attempt.draft.firstName} ·{" "}
+                {order.attempt.draft.firstName &&
+                  `${order.attempt.draft.firstName} · `}
                 {formatPrice(order.attempt.totalCents)}
               </p>
               <p className="text-sm text-muted">
@@ -653,7 +658,7 @@ export function OrderEntry({ staff }: { staff: Staff }) {
         <aside className="rule bg-panel p-6 lg:sticky lg:top-6">
           <h2 className="text-xl font-bold">Guest &amp; total</h2>
           <label className="mt-5 grid gap-2 font-bold">
-            First name (required)
+            First name (optional)
             <input
               className={inputClass}
               maxLength={20}
@@ -704,8 +709,9 @@ export function OrderEntry({ staff }: { staff: Staff }) {
               </p>
             )}
           <p className="mt-4 text-sm text-muted">
-            First name appears on the public pickup board. Mobile is optional
-            and visible only to staff.
+            If entered, the first name appears on the public pickup board.
+            Otherwise, only the pickup number appears. Mobile is optional and
+            visible only to staff.
           </p>
           <div className="mt-6 border-t-[3px] border-ink pt-4">
             <p className="eyebrow">Enter into the separate POS</p>

@@ -92,6 +92,16 @@ it("uses server staff identity rather than a supplied actor or role", async () =
     p_total_cents: 800,
   });
 });
+it("submits an unnamed order with a blank stored name", async () => {
+  expect(
+    (
+      await POST(
+        request({ ...input, draft: { ...input.draft, firstName: " " } }),
+      )
+    ).status,
+  ).toBe(200);
+  expect(mocks.rpc.mock.calls[0][1].p_first_name).toBe("");
+});
 it("accepts the boundary quantity and forwards the draft verbatim", async () => {
   const response = await POST(
     request({
@@ -115,7 +125,6 @@ it("rejects structurally invalid drafts before touching the database", async () 
     { draft: input.draft },
     { ...input, draft: null },
     { ...input, draft: { ...input.draft, lines: [] } },
-    { ...input, draft: { ...input.draft, firstName: " " } },
     {
       ...input,
       draft: {

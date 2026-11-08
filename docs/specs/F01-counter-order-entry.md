@@ -9,7 +9,7 @@ Author: shweyatioo
 
 ## 1. Overview
 
-Counter staff enter the guest’s drinks, options and first name in the app. The app shows the total to charge through the organiser’s separate POS and checks the selected drinks and options against current availability as the order is built. After payment succeeds, the barista clicks Submit order. The app checks availability once more, saves the order and sends it directly to the barista queue as Received.
+Counter staff enter the guest’s drinks and options in the app, and may add a first name. The app shows the total to charge through the organiser’s separate POS and checks the selected drinks and options against current availability as the order is built. After payment succeeds, the barista clicks Submit order. The app checks availability once more, saves the order and sends it directly to the barista queue as Received.
 
 ## 2. Functional Requirements
 
@@ -17,14 +17,14 @@ Counter staff enter the guest’s drinks, options and first name in the app. The
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR1  | Only authenticated staff with order-entry permission can create orders.                                                                                                                                                                                                                                                                                                                                           |
 | FR2  | Staff can add one or more drinks, choose valid temperature/milk options and enter a positive whole-number quantity for each selection. Drinks with different options remain separate order lines.                                                                                                                                                                                                                 |
-| FR3  | Staff can edit quantities/options or remove lines before submitting. The app requires at least one drink and a non-blank guest first name; mobile number is optional.                                                                                                                                                                                                                                             |
+| FR3  | Staff can edit quantities/options or remove lines before submitting. The app requires at least one drink; the guest first name and mobile number are optional.                                                                                                                                                                                                                                                    |
 | FR4  | The app calculates each line as quantity × (base price + selected option charges), then sums the lines. It displays the total in SGD with two decimal places and recalculates after edits.                                                                                                                                                                                                                        |
 | FR5  | Pricing comes from the menu configuration. The current draft charges $1 per drink for iced and $1 per drink for oat milk. Milk options are not offered for espresso or black drinks.                                                                                                                                                                                                                              |
 | FR6  | Whenever the barista adds, changes or removes a drink or option, the order screen checks current availability and updates the draft. If a selected drink or option is unavailable, the screen identifies it and disables Submit order until the draft is corrected. The backend checks availability again when Submit order is clicked; a newly unavailable choice blocks submission and leaves the draft intact. |
-| FR7  | An accepted order stores its items, quantities, options, first name, creation time, event day and recorded prices/total. Later menu edits do not alter these snapshots.                                                                                                                                                                                                                                           |
+| FR7  | An accepted order stores its items, quantities, options, optional first name, creation time, event day and recorded prices/total. Later menu edits do not alter these snapshots.                                                                                                                                                                                                                                  |
 | FR8  | After successful submission, the order screen shows the assigned pickup number, drink details and charged total. The app also assigns an internal order ID. Pickup numbers must not repeat within the same event day.                                                                                                                                                                                             |
 | FR9  | After the barista clicks Submit order, the app shows “Submitting…” and temporarily disables the button. A failed submission retains the draft and shows the reason. Repeated taps or retries of the same submission must not create duplicate orders.                                                                                                                                                             |
-| FR10 | After POS payment succeeds, the barista clicks Submit order. If the final availability check passes, the app saves the order and adds it directly to the barista queue as Received. The queue shows the pickup number, guest’s first name, drinks, quantities and options. There is no separate “Payment received” action.                                                                                        |
+| FR10 | After POS payment succeeds, the barista clicks Submit order. If the final availability check passes, the app saves the order and adds it directly to the barista queue as Received. The queue shows the pickup number, first name if supplied, drinks, quantities and options. There is no separate “Payment received” action.                                                                                    |
 | FR11 | The barista manually enters the app’s total into the organiser’s POS and waits for payment to succeed before clicking Submit order. The app does not process or independently verify POS payment.                                                                                                                                                                                                                 |
 
 ## Dependencies / decisions to confirm
@@ -53,7 +53,7 @@ flowchart TD
     C --> D{Any selected choice unavailable?}
     D -->|Yes| E[Identify choice and disable Submit]
     E --> B
-    D -->|No| F[Enter guest name and show total]
+    D -->|No| F[Optionally enter guest name and show total]
     F --> G[Take payment through separate POS]
     G --> H{Payment successful?}
     H -->|No| G
@@ -68,7 +68,7 @@ flowchart TD
 ## 4. Acceptance Criteria
 
 - Unauthorised users cannot create orders.
-- Empty orders, blank first names, invalid quantities and unsupported drink options are rejected.
+- Empty orders, names over 20 characters, invalid quantities and unsupported drink options are rejected.
 - An order can be submitted without a mobile number.
 - Staff can edit or remove order lines before submitting. Drinks with different options remain distinguishable.
 - Two iced oat lattes at S$8 base + S$1 iced + S$1 oat each total S$20.00. Adding a S$3 espresso gives S$23.00.
@@ -82,5 +82,5 @@ flowchart TD
 - While submitting, the app shows “Submitting…” and temporarily disables the button. A failed submission retains the draft and explains the failure.
 - Repeated taps or retries of the same submission do not create duplicate orders.
 - A successful submission assigns a pickup number that does not repeat within the event day, then shows the number, drink details and charged total on the order screen.
-- A successfully submitted order enters the barista queue once as Received, with the correct guest name, drinks, quantities and options. No separate “Payment received” action is needed.
+- A successfully submitted order enters the barista queue once as Received, with the supplied guest name if any, drinks, quantities and options. No separate “Payment received” action is needed.
 - Submitted orders retain their recorded prices and totals after later menu changes.

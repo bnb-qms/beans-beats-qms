@@ -108,7 +108,6 @@ export function isPendingStatusUpdate(
     Number.isSafeInteger(item.orderNumber) &&
     item.orderNumber > 0 &&
     typeof item.customerFirstName === "string" &&
-    item.customerFirstName.trim().length > 0 &&
     (item.fromStatus === "queued" ||
       item.fromStatus === "preparing" ||
       item.fromStatus === "ready") &&
@@ -197,7 +196,6 @@ export function isQueueOrder(value: unknown): value is QueueOrder {
     typeof order.event_day === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(order.event_day) &&
     typeof order.customer_first_name === "string" &&
-    order.customer_first_name.trim().length > 0 &&
     Object.hasOwn(queueStatuses, order.status) &&
     typeof order.created_at === "string" &&
     !Number.isNaN(Date.parse(order.created_at)) &&

@@ -192,6 +192,9 @@ describe("queue helpers", () => {
       expectedVersion: 1,
     };
     expect(isPendingStatusUpdate(pending)).toBe(true);
+    expect(isPendingStatusUpdate({ ...pending, customerFirstName: "" })).toBe(
+      true,
+    );
     expect(isPendingStatusUpdate({ ...pending, status: "ready" })).toBe(false);
   });
 
@@ -301,6 +304,7 @@ describe("queue helpers", () => {
 
   it("validates queue order payloads and rejects non-active statuses or invalid fields", () => {
     expect(isQueueOrder(baseOrder)).toBe(true);
+    expect(isQueueOrder({ ...baseOrder, customer_first_name: "" })).toBe(true);
     expect(isQueueOrder({ ...baseOrder, status: "ready" })).toBe(true);
     expect(parseQueueOrders([baseOrder])).toEqual([baseOrder]);
     expect(isQueueOrder({ ...baseOrder, status: "collected" })).toBe(false);
